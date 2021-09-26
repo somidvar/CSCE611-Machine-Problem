@@ -41,6 +41,16 @@
 class ContFramePool {
     
 private:
+    unsigned char* avail;
+    unsigned char* head;
+    
+    
+    unsigned int  freeFrameNum=0;   //
+    unsigned long baseFrameNum; // Where does the frame pool start in phys mem?
+    unsigned long numofFrame;       // Size of the frame pool
+    unsigned long infoFrameNum;
+    unsigned long numofInfoFrames;
+    
     /* -- DEFINE YOUR CONT FRAME POOL DATA STRUCTURE(s) HERE. */
     
 public:

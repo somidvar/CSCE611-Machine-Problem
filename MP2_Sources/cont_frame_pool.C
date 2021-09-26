@@ -105,6 +105,7 @@
 #include "utils.H"
 #include "assert.H"
 
+
 /*--------------------------------------------------------------------------*/
 /* DATA STRUCTURES */
 /*--------------------------------------------------------------------------*/
@@ -132,24 +133,180 @@ ContFramePool::ContFramePool(unsigned long _base_frame_no,
                              unsigned long _info_frame_no,
                              unsigned long _n_info_frames)
 {
-    // TODO: IMPLEMENTATION NEEEDED!
-    Console::puts("ContframePool::Constructor not implemented!\n");
-    assert(false);
+    baseFrameNum = _base_frame_no;//512 for kernel which is located at 2 MB
+    numofFrame = _n_frames;//512 which translates into 2 MB located between 2MB and 4 MB
+    infoFrameNum = _info_frame_no;//Location of the manager
+    numofInfoFrames = _n_info_frames;//Number of frames required for the frame manager
+
+    assert(_n_frames <= FRAME_SIZE * 8);
+
+    // Console::putui(baseFrameNum);
+    // Console::puts("\n");
+    // Console::putui(numofFrame);
+    // Console::puts("\n");
+    // Console::putui(infoFrameNum);
+    // Console::puts("\n");
+    // Console::putui(numofInfoFrames);
+    // Console::puts("\n");
+    // Console::putui(FRAME_SIZE);
+    // Console::puts("\n");
+
+    // If _info_frame_no is zero then we keep management info in the first
+    //frame, else we use the provided frame to keep management info
+    if(infoFrameNum == 0) {
+        avail = (unsigned char *) (baseFrameNum * FRAME_SIZE); // this is the frame manager for only the kernel
+        head = (unsigned char *) ((baseFrameNum+1) * FRAME_SIZE); // this is the frame manager for only the kernel
+    } else {
+        avail = (unsigned char *) (infoFrameNum * FRAME_SIZE); //this is the frame manager for only the process
+    }
+    
+    // To avoid internal fragmentation, the pool number of frames should be dividable by 8 to fill one byte
+    assert ((numofFrame % 8 ) == 0);
+    //Initiliziation which makes all the avail 1 and all the head 0
+    for(int i=0; i< numofFrame/8; i++) {
+        freeFrameNum+=8;
+        avail[i] = 0xFF;
+        head[i]= 0x00;
+    }
+    Console::puts("Number of free frames: ");
+    Console::putui(freeFrameNum);
+    Console::puts("\n");
+    // Mark the first frame as being used if it is being used and as a head
+    if(infoFrameNum == 0) {
+        avail[0] = 0xFE;
+        head[0]=0x01;
+        freeFrameNum--;
+    }
+    Console::puts("Frame Pool is successfully initialized\n");
 }
 
-unsigned long ContFramePool::get_frames(unsigned int _n_frames)
-{
-    // TODO: IMPLEMENTATION NEEEDED!
-    Console::puts("ContframePool::get_frames not implemented!\n");
-    assert(false);
+unsigned long ContFramePool::get_frames(unsigned int _n_frames){
+    unsigned long requestedFrameNum = _n_frames;//number of frames needed for the process or kernel
+    assert(requestedFrameNum<freeFrameNum);
+
+    bool foundFlag=false;
+    bool searchContinue=true;
+
+    unsigned long moreFrame;
+    unsigned long searchCounter=0;
+    unsigned long baseAdd=0;
+    while(true){
+        int charPage=int(searchCounter/8);
+        int charRemainder=searchCounter%8;
+
+        int dataBits[8];
+        for (int bitCounter = 0 ; bitCounter != 8 ; bitCounter++) {
+            dataBits[bitCounter] = (avail[charPage] & (1 << bitCounter)) != 0;
+        }
+        for(int j=charRemainder;j<8;j++){
+            if(dataBits[j]==0){
+                moreFrame=requestedFrameNum;
+                baseAdd=searchCounter+1;
+                break;
+            }
+            else{
+                moreFrame--;
+                if(moreFrame==0){
+                    foundFlag=true;
+                    break;
+                }
+            }
+            if (j==7)
+                searchCounter=(charPage+1)*8;
+        }
+        if(foundFlag)
+            break;
+        if(searchCounter==numofFrame)
+            break;
+        searchCounter++;
+    }
+
+    if(foundFlag){  
+        unsigned long tempBegin=baseAdd;
+        unsigned long tempEnd=-1;
+        moreFrame=requestedFrameNum; 
+        while(true){
+            int charPage=int(tempBegin/8);
+            int charRemainder=tempBegin%8;
+            int dataBits[8];
+            for (int bitCounter = 0 ; bitCounter != 8 ; bitCounter++) {
+                dataBits[bitCounter] = (avail[charPage] & (1 << bitCounter)) != 0;
+            }
+            if(charRemainder+moreFrame>=8)
+                tempEnd=8;
+            else
+                tempEnd=charRemainder+moreFrame;
+            for(int i=charRemainder;i<tempEnd;i++){
+                dataBits[i]=0;
+                moreFrame--;
+                tempBegin++;
+            }
+            int tempVal=0;
+            int pow=1;
+            int counter=0;
+            for(int i=0;i<8;i++){
+                tempVal+=pow*dataBits[counter];
+                pow*=2;
+                counter++;
+            }
+            avail[charPage]=tempVal;
+            if(moreFrame==0)
+                break;
+        }
+    }
+    if(foundFlag){
+        Console::puts("ContframePool::get frame works beautifully. Req frames=");
+        Console::putui(requestedFrameNum);
+        Console::puts(" and the base=");
+        Console::putui(baseAdd);
+
+        Console::puts("\n");
+        return baseAdd;
+    }
+    Console::puts("ContframePool::There is not enough frame for such a request with the size=");
+    Console::putui(requestedFrameNum);
+    Console::puts("\n");
+    return -1; //reserved value for the situation that the getFrame cannot be fulfilled
 }
 
-void ContFramePool::mark_inaccessible(unsigned long _base_frame_no,
-                                      unsigned long _n_frames)
-{
-    // TODO: IMPLEMENTATION NEEEDED!
-    Console::puts("ContframePool::mark_inaccessible not implemented!\n");
-    assert(false);
+void ContFramePool::mark_inaccessible(unsigned long _base_frame_no,unsigned long _n_frames){
+    unsigned long baseFrameNum=_base_frame_no;
+    unsigned long frameNum=_n_frames;
+    unsigned long moreFrame=frameNum;
+    unsigned long currentFrame=baseFrameNum;
+    while(true){
+        unsigned long charPage=int(currentFrame/8);
+        unsigned long charRemainder=currentFrame%8;
+        
+        int dataBits[8];
+        for (int bitCounter = 0 ; bitCounter != 8 ; bitCounter++) {
+            dataBits[bitCounter] = (avail[charPage] & (1 << bitCounter)) != 0;
+        }
+        int tempEnd=charRemainder+moreFrame;
+        if (tempEnd>8)
+            tempEnd=8;
+        for(int counter=charRemainder;counter<tempEnd;counter++){
+            dataBits[counter]=0;
+            moreFrame--;
+            currentFrame++;
+        }
+        int tempVal=0;
+            int pow=1;
+            int counter=0;
+            for(int i=0;i<8;i++){
+                tempVal+=pow*dataBits[counter];
+                pow*=2;
+                counter++;
+            }
+            avail[charPage]=tempVal;
+        if (moreFrame==0)
+            break;
+    }
+    Console::puts("ContframePool::mark_inaccessible works beautifullu with the base=");
+    Console::putui(baseFrameNum);
+    Console::puts(" and frame number=");
+    Console::putui(frameNum);
+    Console::puts("\n");
 }
 
 void ContFramePool::release_frames(unsigned long _first_frame_no)
@@ -161,7 +318,14 @@ void ContFramePool::release_frames(unsigned long _first_frame_no)
 
 unsigned long ContFramePool::needed_info_frames(unsigned long _n_frames)
 {
-    // TODO: IMPLEMENTATION NEEEDED!
-    Console::puts("ContframePool::need_info_frames not implemented!\n");
-    assert(false);
+    unsigned long infoFrameNum=_n_frames;
+    unsigned long neededInfoFrame=0;
+    if(infoFrameNum>=FRAME_SIZE*8)
+        neededInfoFrame=int(infoFrameNum/FRAME_SIZE/8);
+    if(infoFrameNum%(FRAME_SIZE*8)!=0)
+        neededInfoFrame+=1;
+    Console::puts("\nContframePool::need_info_frames is working beautifully. Neede info frame=");
+    Console::putui(neededInfoFrame);
+    Console::puts("\n");
+    return neededInfoFrame;
 }
