@@ -41,9 +41,7 @@
 class ContFramePool {
     
 private:
-    unsigned char* avail;
-    unsigned char* head;
-    
+    unsigned char* bitmap;    
     
     unsigned int  freeFrameNum=0;   //
     unsigned long baseFrameNum; // Where does the frame pool start in phys mem?

@@ -138,8 +138,6 @@ ContFramePool::ContFramePool(unsigned long _base_frame_no,
     infoFrameNum = _info_frame_no;//Location of the manager
     numofInfoFrames = _n_info_frames;//Number of frames required for the frame manager
 
-    assert(_n_frames <= FRAME_SIZE * 8);
-
     // Console::putui(baseFrameNum);
     // Console::puts("\n");
     // Console::putui(numofFrame);
@@ -154,30 +152,35 @@ ContFramePool::ContFramePool(unsigned long _base_frame_no,
     // If _info_frame_no is zero then we keep management info in the first
     //frame, else we use the provided frame to keep management info
     if(infoFrameNum == 0) {
-        avail = (unsigned char *) (baseFrameNum * FRAME_SIZE); // this is the frame manager for only the kernel
-        head = (unsigned char *) ((baseFrameNum+1) * FRAME_SIZE); // this is the frame manager for only the kernel
+        bitmap = (unsigned char *) (baseFrameNum * FRAME_SIZE); // this is the frame manager for only the kernel
     } else {
-        avail = (unsigned char *) (infoFrameNum * FRAME_SIZE); //this is the frame manager for only the process
+        bitmap = (unsigned char *) (infoFrameNum * FRAME_SIZE); //this is the frame manager for only the process
     }
     
     // To avoid internal fragmentation, the pool number of frames should be dividable by 8 to fill one byte
     assert ((numofFrame % 8 ) == 0);
-    //Initiliziation which makes all the avail 1 and all the head 0
-    for(int i=0; i< numofFrame/8; i++) {
-        freeFrameNum+=8;
-        avail[i] = 0xFF;
-        head[i]= 0x00;
+    
+    //Initiliziation which makes all the bitmap 1 and all the head 0
+    for(int i=0; i< numofFrame/4; i++) {
+        freeFrameNum+=4;
+        bitmap[i] = 85; //where the even bits are availibility and odd ones are the head
     }
     Console::puts("Number of free frames: ");
     Console::putui(freeFrameNum);
     Console::puts("\n");
     // Mark the first frame as being used if it is being used and as a head
     if(infoFrameNum == 0) {
-        avail[0] = 0xFE;
-        head[0]=0x01;
+        bitmap[0] = 86;
         freeFrameNum--;
     }
     Console::puts("Frame Pool is successfully initialized\n");
+
+    int dataBits[8];
+    for (int bitCounter = 0 ; bitCounter != 8 ; bitCounter++) {
+        dataBits[bitCounter] = (bitmap[0] & (1 << bitCounter)) != 0;
+        Console::puti(dataBits[bitCounter]);
+    }
+    Console::puts("\n");
 }
 
 unsigned long ContFramePool::get_frames(unsigned int _n_frames){
@@ -192,16 +195,16 @@ unsigned long ContFramePool::get_frames(unsigned int _n_frames){
     unsigned long baseAdd=0;
     while(true){
         int charPage=int(searchCounter/8);
-        int charRemainder=searchCounter%8;
+        int charRemainder=(searchCounter%8);
 
         int dataBits[8];
         for (int bitCounter = 0 ; bitCounter != 8 ; bitCounter++) {
-            dataBits[bitCounter] = (avail[charPage] & (1 << bitCounter)) != 0;
+            dataBits[bitCounter] = (bitmap[charPage] & (1 << bitCounter)) != 0;
         }
-        for(int j=charRemainder;j<8;j++){
+        for(int j=charRemainder;j<8;j+=2){
             if(dataBits[j]==0){
                 moreFrame=requestedFrameNum;
-                baseAdd=searchCounter+1;
+                baseAdd=searchCounter+2;
                 break;
             }
             else{
@@ -211,17 +214,37 @@ unsigned long ContFramePool::get_frames(unsigned int _n_frames){
                     break;
                 }
             }
-            if (j==7)
-                searchCounter=(charPage+1)*8;
+            // if (j==6)
+            //     searchCounter=(charPage+1)*8;
         }
         if(foundFlag)
             break;
         if(searchCounter==numofFrame)
             break;
-        searchCounter++;
+        searchCounter+=2;
     }
 
-    if(foundFlag){  
+    if(foundFlag){//updating the head
+        int charPage=int((baseAdd+1)/8);
+        int charRemainder=(baseAdd+1)%8;
+        int dataBits[8];
+        for (int bitCounter = 0 ; bitCounter != 8 ; bitCounter++) {
+            dataBits[bitCounter] = (bitmap[charPage] & (1 << bitCounter)) != 0;
+        }
+        dataBits[charRemainder]=1;
+
+        int tempVal=0;
+        int pow=1;
+        int counter=0;
+        for(int i=0;i<8;i++){
+            tempVal+=pow*dataBits[counter];
+            pow*=2;
+            counter++;
+        }
+        bitmap[charPage]=tempVal;
+    }
+
+    if(foundFlag){//updating availibility
         unsigned long tempBegin=baseAdd;
         unsigned long tempEnd=-1;
         moreFrame=requestedFrameNum; 
@@ -230,16 +253,16 @@ unsigned long ContFramePool::get_frames(unsigned int _n_frames){
             int charRemainder=tempBegin%8;
             int dataBits[8];
             for (int bitCounter = 0 ; bitCounter != 8 ; bitCounter++) {
-                dataBits[bitCounter] = (avail[charPage] & (1 << bitCounter)) != 0;
+                dataBits[bitCounter] = (bitmap[charPage] & (1 << bitCounter)) != 0;
             }
-            if(charRemainder+moreFrame>=8)
+            if(charRemainder+2*moreFrame>=8)
                 tempEnd=8;
             else
-                tempEnd=charRemainder+moreFrame;
-            for(int i=charRemainder;i<tempEnd;i++){
+                tempEnd=charRemainder+2*moreFrame;
+            for(int i=charRemainder;i<tempEnd;i+=2){
                 dataBits[i]=0;
                 moreFrame--;
-                tempBegin++;
+                tempBegin+=2;
             }
             int tempVal=0;
             int pow=1;
@@ -249,7 +272,7 @@ unsigned long ContFramePool::get_frames(unsigned int _n_frames){
                 pow*=2;
                 counter++;
             }
-            avail[charPage]=tempVal;
+            bitmap[charPage]=tempVal;
             if(moreFrame==0)
                 break;
         }
@@ -258,10 +281,10 @@ unsigned long ContFramePool::get_frames(unsigned int _n_frames){
         Console::puts("ContframePool::get frame works beautifully. Req frames=");
         Console::putui(requestedFrameNum);
         Console::puts(" and the base=");
-        Console::putui(baseAdd);
+        Console::putui(baseAdd/2);
 
         Console::puts("\n");
-        return baseAdd;
+        return baseAdd/2;
     }
     Console::puts("ContframePool::There is not enough frame for such a request with the size=");
     Console::putui(requestedFrameNum);
@@ -274,22 +297,43 @@ void ContFramePool::mark_inaccessible(unsigned long _base_frame_no,unsigned long
     unsigned long frameNum=_n_frames;
     unsigned long moreFrame=frameNum;
     unsigned long currentFrame=baseFrameNum;
-    while(true){
+    {//updating the head
+        unsigned long charPage=int(baseFrameNum/8);
+        unsigned long charRemainder=baseFrameNum%8;
+        
+        int dataBits[8];
+        for (int bitCounter = 0 ; bitCounter != 8 ; bitCounter++) {
+            dataBits[bitCounter] = (bitmap[charPage] & (1 << bitCounter)) != 0;
+        }
+        dataBits[charRemainder]=1;
+
+        int tempVal=0;
+        int pow=1;
+        int counter=0;
+        for(int i=0;i<8;i++){
+            tempVal+=pow*dataBits[counter];
+            pow*=2;
+            counter++;
+        }
+        bitmap[charPage]=tempVal;
+    }
+    while(true){//updataing the avaialibility
         unsigned long charPage=int(currentFrame/8);
         unsigned long charRemainder=currentFrame%8;
         
         int dataBits[8];
         for (int bitCounter = 0 ; bitCounter != 8 ; bitCounter++) {
-            dataBits[bitCounter] = (avail[charPage] & (1 << bitCounter)) != 0;
+            dataBits[bitCounter] = (bitmap[charPage] & (1 << bitCounter)) != 0;
         }
-        int tempEnd=charRemainder+moreFrame;
+        int tempEnd=charRemainder+2*moreFrame;
         if (tempEnd>8)
             tempEnd=8;
-        for(int counter=charRemainder;counter<tempEnd;counter++){
+        for(int counter=charRemainder;counter<tempEnd;counter+=2){
             dataBits[counter]=0;
             moreFrame--;
-            currentFrame++;
+            currentFrame+=2;
         }
+
         int tempVal=0;
             int pow=1;
             int counter=0;
@@ -298,7 +342,7 @@ void ContFramePool::mark_inaccessible(unsigned long _base_frame_no,unsigned long
                 pow*=2;
                 counter++;
             }
-            avail[charPage]=tempVal;
+            bitmap[charPage]=tempVal;
         if (moreFrame==0)
             break;
     }
@@ -309,20 +353,85 @@ void ContFramePool::mark_inaccessible(unsigned long _base_frame_no,unsigned long
     Console::puts("\n");
 }
 
-void ContFramePool::release_frames(unsigned long _first_frame_no)
-{
-    // TODO: IMPLEMENTATION NEEEDED!
-    Console::puts("ContframePool::release_frames not implemented!\n");
-    assert(false);
+void ContFramePool::release_frames(unsigned long _first_frame_no){
+    // unsigned long firstHead=_first_frame_no*2+1;
+    // unsigned long secondHead=_first_frame_no+2;
+    
+    // while(true){
+    //     unsigned long charPage=int(secondHead/8);
+    //     unsigned long charRemainder=secondHead%8;
+
+    //     int dataBits[8];
+    //     for (int bitCounter = 0 ; bitCounter != 8 ; bitCounter++) {
+    //         dataBits[bitCounter] = (bitmap[charPage] & (1 << bitCounter)) != 0;
+    //     }
+    //     if(dataBits[charRemainder]==1)
+    //         break;
+    //     secondHead+=2;
+    //     if(secondHead>=numofFrame){
+    //         Console::puts("ContframePool::release_frames unsuccessfull!\n");
+    //         return;
+    //     }
+    // }
+    // {//updating availibility
+    //     unsigned long tempBegin=firstHead-1;
+    //     unsigned long tempEnd=-1;
+    //     unsigned long moreFrame=((secondHead-1)-(firstHead-1))/2; 
+    //     while(true){
+    //         int charPage=int(tempBegin/8);
+    //         int charRemainder=tempBegin%8;
+    //         int dataBits[8];
+    //         for (int bitCounter = 0 ; bitCounter != 8 ; bitCounter++) {
+    //             dataBits[bitCounter] = (bitmap[charPage] & (1 << bitCounter)) != 0;
+    //         }
+    //         if(charRemainder+2*moreFrame>=8)
+    //             tempEnd=8;
+    //         else
+    //             tempEnd=charRemainder+2*moreFrame;
+    //         for(int i=charRemainder;i<tempEnd;i+=2){
+    //             dataBits[i]=1;
+    //             moreFrame--;
+    //             tempBegin+=2;
+    //         }
+    //         int tempVal=0;
+    //         int pow=1;
+    //         int counter=0;
+    //         for(int i=0;i<8;i++){
+    //             tempVal+=pow*dataBits[counter];
+    //             pow*=2;
+    //             counter++;
+    //         }
+    //         bitmap[charPage]=tempVal;
+    //         if(moreFrame==0)
+    //             break;
+    //     }
+    // }
+    // {//updating head
+    //     int charPage=int(firstHead/8);
+    //     int charRemainder=firstHead%8;
+    //     int dataBits[8];
+    //     for (int bitCounter = 0 ; bitCounter != 8 ; bitCounter++) {
+    //         dataBits[bitCounter] = (bitmap[charPage] & (1 << bitCounter)) != 0;
+    //     }
+    //     dataBits[charRemainder]=0;
+    //     int tempVal=0;
+    //     int pow=1;
+    //     int counter=0;
+    //     for(int i=0;i<8;i++){
+    //         tempVal+=pow*dataBits[counter];
+    //         pow*=2;
+    //         counter++;
+    //     }
+    //     bitmap[charPage]=tempVal;
+    // }    
+    Console::puts("ContframePool::release_frames is working beautifully.\n");
 }
 
-unsigned long ContFramePool::needed_info_frames(unsigned long _n_frames)
-{
+unsigned long ContFramePool::needed_info_frames(unsigned long _n_frames){
     unsigned long infoFrameNum=_n_frames;
-    unsigned long neededInfoFrame=0;
-    if(infoFrameNum>=FRAME_SIZE*8)
-        neededInfoFrame=int(infoFrameNum/FRAME_SIZE/8);
-    if(infoFrameNum%(FRAME_SIZE*8)!=0)
+    unsigned long neededInfoFrame;
+    neededInfoFrame=int(infoFrameNum/FRAME_SIZE/4);
+    if(infoFrameNum%(FRAME_SIZE*4)!=0)
         neededInfoFrame+=1;
     Console::puts("\nContframePool::need_info_frames is working beautifully. Neede info frame=");
     Console::putui(neededInfoFrame);
