@@ -43,16 +43,18 @@ class ContFramePool {
 private:
     unsigned char* bitmap;    
     
-    unsigned int  freeFrameNum=0;   //
+    unsigned int freeFrameNum=0;   //
     unsigned long baseFrameNum; // Where does the frame pool start in phys mem?
     unsigned long numofFrame;       // Size of the frame pool
     unsigned long infoFrameNum;
     unsigned long numofInfoFrames;
     
+    static int poolCounter;
+    static ContFramePool* pools[100];
     /* -- DEFINE YOUR CONT FRAME POOL DATA STRUCTURE(s) HERE. */
     
 public:
-
+    
     // The frame size is the same as the page size, duh...    
     static const unsigned int FRAME_SIZE = Machine::PAGE_SIZE; 
 
@@ -109,7 +111,7 @@ public:
      This function must first identify the correct frame pool and then call the frame
      pool's release_frame function.
      */
-    
+
     static unsigned long needed_info_frames(unsigned long _n_frames);
     /*
      Returns the number of frames needed to manage a frame pool of size _n_frames.

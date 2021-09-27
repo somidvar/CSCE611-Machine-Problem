@@ -127,6 +127,8 @@
 /*--------------------------------------------------------------------------*/
 /* METHODS FOR CLASS   C o n t F r a m e P o o l */
 /*--------------------------------------------------------------------------*/
+int ContFramePool::poolCounter=0;
+ContFramePool* ContFramePool::pools[] ={};
 
 ContFramePool::ContFramePool(unsigned long _base_frame_no,
                              unsigned long _n_frames,
@@ -181,6 +183,9 @@ ContFramePool::ContFramePool(unsigned long _base_frame_no,
         Console::puti(dataBits[bitCounter]);
     }
     Console::puts("\n");
+    
+    pools[poolCounter]= this;
+    poolCounter++;
 }
 
 unsigned long ContFramePool::get_frames(unsigned int _n_frames){
@@ -354,6 +359,28 @@ void ContFramePool::mark_inaccessible(unsigned long _base_frame_no,unsigned long
 }
 
 void ContFramePool::release_frames(unsigned long _first_frame_no){
+    ContFramePool* currentPool=NULL;
+    for(int i=0;i<100;i++){
+        if(pools[i]!=NULL){
+            Console::puts("base ");
+            Console::putui(pools[i]->baseFrameNum);
+            Console::puts("\n end");
+            Console::putui(pools[i]->baseFrameNum+pools[i]->numofFrame);
+            Console::puts("\n target");
+            Console::putui(_first_frame_no);
+            Console::puts("\n");
+            if (pools[i]->baseFrameNum<=_first_frame_no && pools[i]->baseFrameNum+pools[i]->numofFrame>_first_frame_no){
+                currentPool=pools[i];
+                break;
+            }
+        }
+    }
+
+    if(!currentPool){
+        Console::puts("ContframePool::release_frames error. MAYDAY");
+        return;
+    }
+    unsigned char* currentBitmap=currentPool->bitmap;
     // unsigned long firstHead=_first_frame_no*2+1;
     // unsigned long secondHead=_first_frame_no+2;
     
@@ -363,7 +390,7 @@ void ContFramePool::release_frames(unsigned long _first_frame_no){
 
     //     int dataBits[8];
     //     for (int bitCounter = 0 ; bitCounter != 8 ; bitCounter++) {
-    //         dataBits[bitCounter] = (bitmap[charPage] & (1 << bitCounter)) != 0;
+    //         dataBits[bitCounter] = (currentBitmap[charPage] & (1 << bitCounter)) != 0;
     //     }
     //     if(dataBits[charRemainder]==1)
     //         break;
@@ -382,7 +409,7 @@ void ContFramePool::release_frames(unsigned long _first_frame_no){
     //         int charRemainder=tempBegin%8;
     //         int dataBits[8];
     //         for (int bitCounter = 0 ; bitCounter != 8 ; bitCounter++) {
-    //             dataBits[bitCounter] = (bitmap[charPage] & (1 << bitCounter)) != 0;
+    //             dataBits[bitCounter] = (currentBitmap[charPage] & (1 << bitCounter)) != 0;
     //         }
     //         if(charRemainder+2*moreFrame>=8)
     //             tempEnd=8;
@@ -401,7 +428,7 @@ void ContFramePool::release_frames(unsigned long _first_frame_no){
     //             pow*=2;
     //             counter++;
     //         }
-    //         bitmap[charPage]=tempVal;
+    //         currentBitmap[charPage]=tempVal;
     //         if(moreFrame==0)
     //             break;
     //     }
@@ -411,7 +438,7 @@ void ContFramePool::release_frames(unsigned long _first_frame_no){
     //     int charRemainder=firstHead%8;
     //     int dataBits[8];
     //     for (int bitCounter = 0 ; bitCounter != 8 ; bitCounter++) {
-    //         dataBits[bitCounter] = (bitmap[charPage] & (1 << bitCounter)) != 0;
+    //         dataBits[bitCounter] = (currentBitmap[charPage] & (1 << bitCounter)) != 0;
     //     }
     //     dataBits[charRemainder]=0;
     //     int tempVal=0;
@@ -422,7 +449,7 @@ void ContFramePool::release_frames(unsigned long _first_frame_no){
     //         pow*=2;
     //         counter++;
     //     }
-    //     bitmap[charPage]=tempVal;
+    //     currentBitmap[charPage]=tempVal;
     // }    
     Console::puts("ContframePool::release_frames is working beautifully.\n");
 }
