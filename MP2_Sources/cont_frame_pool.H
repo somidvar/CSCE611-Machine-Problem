@@ -41,16 +41,16 @@
 class ContFramePool {
     
 private:
-    unsigned char* bitmap;    
+    unsigned char* Bitmap;    
     
-    unsigned int freeFrameNum=0;   //
-    unsigned long baseFrameNum; // Where does the frame pool start in phys mem?
-    unsigned long numofFrame;       // Size of the frame pool
-    unsigned long infoFrameNum;
-    unsigned long numofInfoFrames;
+    unsigned long FreeFrameNum=0;   //
+    unsigned long BaseAdd; // Where does the frame pool start in phys mem?
+    unsigned long FrameNum;       // Size of the frame pool
+    unsigned long InfoAdd;
+    unsigned long InfoNum;
     
-    static int poolCounter;
-    static ContFramePool* pools[100];
+    static int PoolCounter;
+    static ContFramePool* Pools[100];
     /* -- DEFINE YOUR CONT FRAME POOL DATA STRUCTURE(s) HERE. */
     
 public:
@@ -125,5 +125,8 @@ public:
      Other implementations need a different number of info frames.
      The exact number is computed in this function..
      */
+    int decimalExt(int* databits);    
+    void bitExt(unsigned char input,int* dataBits);
+    
 };
 #endif

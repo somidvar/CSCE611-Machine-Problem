@@ -99,7 +99,7 @@ int main() {
 }
 
 void test_memory(ContFramePool * _pool, unsigned int _allocs_to_go) {
-    // if(mamad>=12){
+    // if(mamad>=8){
     //     Console::puts("oi baba-------------------------------\n");
     //     assert(false);
     // }
