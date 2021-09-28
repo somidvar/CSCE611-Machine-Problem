@@ -290,13 +290,6 @@ void ContFramePool::release_frames(unsigned long _first_frame_no){
     ContFramePool* currentPool=NULL;
     for(int i=0;i<100;i++){
         if(Pools[i]!=NULL){
-            // Console::puts("base ");
-            // Console::putui(pools[i]->baseFrameNum);
-            // Console::puts("\n end");
-            // Console::putui(pools[i]->baseFrameNum+pools[i]->numofFrame);
-            // Console::puts("\n target");
-            // Console::putui(_first_frame_no);
-            // Console::puts("\n");
             if (Pools[i]->BaseAdd<=frameNum && Pools[i]->BaseAdd+Pools[i]->FrameNum>frameNum){
                 currentPool=Pools[i];
                 break;
@@ -306,12 +299,13 @@ void ContFramePool::release_frames(unsigned long _first_frame_no){
 
     if(!currentPool){
         Console::puts("ContframePool::release_frames could not locate the owner pool. MAYDAY\n");
-        return;
+        assert(false);
     }
 
     unsigned char* currentBitmap=currentPool->Bitmap;
-    unsigned long firstHead=frameNum*2+1;
+    unsigned long firstHead=(frameNum-currentPool->BaseAdd)*2+1;
     unsigned long secondHead=firstHead+2;
+
     while(true){
         unsigned long charPage=int(secondHead/8);
         unsigned long charRemainder=secondHead%8;
@@ -320,20 +314,17 @@ void ContFramePool::release_frames(unsigned long _first_frame_no){
         for (int i = 0 ; i != 8 ; i++) {
             dataBits[i] = (currentBitmap[charPage] & (1 << i)) != 0;
         }
-        if(dataBits[charRemainder]==1)
-            break;//next head is found
+        if(dataBits[charRemainder]==1)//next head is found
+            break;
         if(dataBits[charRemainder-1]==1){//empty bit
-            secondHead-=2;
             break;
         }   
         secondHead+=2;
         if(secondHead>=currentPool->FrameNum){
             Console::puts("ContframePool::headFiner-Warning, head is at end of pool!\n");
-            break;
+            assert(false);
         }
     }
-
-/*
 
     {//updating availibility
         unsigned long tempBegin=firstHead-1;
@@ -351,17 +342,16 @@ void ContFramePool::release_frames(unsigned long _first_frame_no){
             else
                 tempEnd=charRemainder+2*moreFrame;
             for(int i=charRemainder;i<tempEnd;i+=2){
-                dataBits[i]=1;
+                dataBits[i]=1;//updating the availibility bit
+                dataBits[i+1]=0;//updating the head
                 moreFrame--;
                 tempBegin+=2;
             }
             int tempVal=0;
             int pow=1;
-            int counter=0;
             for(int i=0;i<8;i++){
-                tempVal+=pow*dataBits[counter];
+                tempVal+=pow*dataBits[i];
                 pow*=2;
-                counter++;
             }
             currentBitmap[charPage]=tempVal;
             if(moreFrame==0)
@@ -378,16 +368,18 @@ void ContFramePool::release_frames(unsigned long _first_frame_no){
         dataBits[charRemainder]=0;
         int tempVal=0;
         int pow=1;
-        int counter=0;
         for(int i=0;i<8;i++){
-            tempVal+=pow*dataBits[counter];
+            tempVal+=pow*dataBits[i];
             pow*=2;
-            counter++;
         }
         currentBitmap[charPage]=tempVal;
-    }    
-    Console::puts("ContframePool::release_frames is working beautifully.\n");
-    */
+    
+    }
+    Console::puts("ContframePool::release_frames released from frame ");
+    Console::putui(currentPool->BaseAdd+(firstHead-1)/2);
+    Console::puts(" till ");
+    Console::putui(currentPool->BaseAdd+(secondHead-1)/2);
+    Console::puts("\n");
 }
 
 unsigned long ContFramePool::needed_info_frames(unsigned long _n_frames){
