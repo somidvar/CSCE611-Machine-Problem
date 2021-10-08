@@ -151,7 +151,6 @@ int main() {
                            4 MB); /* We share the first 4MB */
     
     PageTable pt;
-    
     pt.load();
     
     PageTable::enable_paging();

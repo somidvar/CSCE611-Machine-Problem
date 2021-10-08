@@ -43,6 +43,30 @@ class ContFramePool {
 private:
     /* -- DEFINE YOUR CONT FRAME POOL DATA STRUCTURE(s) HERE. */
     
+    /* ---- Bag of created frame pools */
+    
+    static ContFramePool * head;
+    static ContFramePool * tail;    
+ 
+    ContFramePool * next;
+    ContFramePool * prev;
+   
+    /* ---- Info about this frame pool */
+    unsigned char * bitmap;        // We implement the simple frame pool with a bitmap
+    unsigned long   base_frame_no; // Where does the frame pool start in phys mem?
+    unsigned long   nframes;       // Size of the frame pool
+    unsigned long   info_frame_no; // First of the frames with meta data about pool.
+    
+    /* ---- STATE MANAGEMENT */
+    
+    enum class FrameState {Free, Used, HoS};
+
+    FrameState get_state(unsigned long _frame_no);
+    void set_state(unsigned long _frame_no, FrameState _state);
+    
+    static void add_to_bag(ContFramePool * _new_pool);
+    static void remove_from_bag(ContFramePool * _pool);
+    
 public:
 
     // The frame size is the same as the page size, duh...    
@@ -57,21 +81,17 @@ public:
      frame pool.
      _base_frame_no: Number of first frame managed by this frame pool.
      _n_frames: Size, in frames, of this frame pool.
-     EXAMPLE: If _base_frame_no is 16 and _nframes is 4, this frame pool manages
+     EXAMPLE: If _base_frame_no is 16 and _n_frames is 4, this frame pool manages
      physical frames numbered 16, 17, 18 and 19.
      _info_frame_no: Number of the first frame that should be used to store the
      management information for the frame pool.
      NOTE: If _info_frame_no is 0, the frame pool is free to
      choose any frames from the pool to store management information.
-     _n_info_frames: If _info_frame_no is 0, this argument specifies the
-     number of consecutive frames needed to store the management information
-     for the frame pool.
-     EXAMPLE: If _info_frame_no is 699 and _n_info_frames is 3,
-     then Frames 699, 700, and 701 are used to store the management information
-     for the frame pool.
      NOTE: This function must be called before the paging system
      is initialized.
      */
+    
+    void pretty_print(unsigned int _n_frames);
     
     unsigned long get_frames(unsigned int _n_frames);
     /*
@@ -101,6 +121,11 @@ public:
      This function must first identify the correct frame pool and then call the frame
      pool's release_frame function.
      */
+    
+    void pool_release_frames(unsigned long _first_frame_no);
+    
+    bool contains(unsigned long _frame_no);
+    
     
     static unsigned long needed_info_frames(unsigned long _n_frames);
     /*

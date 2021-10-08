@@ -50,7 +50,11 @@ private:
 
   /* DATA FOR CURRENT PAGE TABLE */
   unsigned long        * page_directory;     /* where is page directory located? */
+   // unsigned long directoryAdd=NULL; //the frame number of directory page
+   // unsigned long *directory=NULL; //the actual directory
 
+   unsigned long * directMapping=0;
+   
 public:
   static const unsigned int PAGE_SIZE        = Machine::PAGE_SIZE; 
   /* in bytes */
