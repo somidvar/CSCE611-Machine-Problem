@@ -100,7 +100,7 @@ void PageTable::handle_fault(REGS *_r)
    if (pageMetaData == 0) //the directory entry is present but the page is not
    {
       unsigned long newFrameAdd=process_mem_pool->get_frames(1); //this time we get a frame from the prcoess to sit the actual data
-      pageTablePage[pageBits]=newFrameAdd*PAGE_SIZE + (1*1+2*1+4*0);//present, read/write, kernel
+      pageTablePage[pageBits]=newFrameAdd*PAGE_SIZE + (1*1+2*1+4*1);//present, read/write, kernel
    }
    else//the page is present at the page table page
    {
