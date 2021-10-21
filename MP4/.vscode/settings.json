@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "kernel.C": "cpp",
+        "page_table.C": "cpp"
+    }
+}

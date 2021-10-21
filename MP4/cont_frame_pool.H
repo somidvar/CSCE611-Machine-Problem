@@ -41,10 +41,20 @@
 class ContFramePool {
     
 private:
+    unsigned char* Bitmap;    
+    
+    unsigned long FreeFrameNum=0;   //
+    unsigned long BaseAdd; // Where does the frame pool start in phys mem?
+    unsigned long FrameNum;       // Size of the frame pool
+    unsigned long InfoAdd;
+    unsigned long InfoNum;
+    
+    static int PoolCounter;
+    static ContFramePool* Pools[100];
     /* -- DEFINE YOUR CONT FRAME POOL DATA STRUCTURE(s) HERE. */
     
 public:
-
+    
     // The frame size is the same as the page size, duh...    
     static const unsigned int FRAME_SIZE = Machine::PAGE_SIZE; 
 
@@ -57,13 +67,13 @@ public:
      frame pool.
      _base_frame_no: Number of first frame managed by this frame pool.
      _n_frames: Size, in frames, of this frame pool.
-     EXAMPLE: If _base_frame_no is 16 and _nframes is 4, this frame pool manages
+     EXAMPLE: If _base_frame_no is 16 and _n_frames is 4, this frame pool manages
      physical frames numbered 16, 17, 18 and 19.
      _info_frame_no: Number of the first frame that should be used to store the
      management information for the frame pool.
      NOTE: If _info_frame_no is 0, the frame pool is free to
      choose any frames from the pool to store management information.
-     _n_info_frames: If _info_frame_no is 0, this argument specifies the
+     _n_info_frames: If _info_frame_no is NOT 0, this argument specifies the
      number of consecutive frames needed to store the management information
      for the frame pool.
      EXAMPLE: If _info_frame_no is 699 and _n_info_frames is 3,
@@ -101,7 +111,7 @@ public:
      This function must first identify the correct frame pool and then call the frame
      pool's release_frame function.
      */
-    
+
     static unsigned long needed_info_frames(unsigned long _n_frames);
     /*
      Returns the number of frames needed to manage a frame pool of size _n_frames.
@@ -115,5 +125,8 @@ public:
      Other implementations need a different number of info frames.
      The exact number is computed in this function..
      */
+    int decimalExt(int* databits);    
+    void bitExt(unsigned char input,int* dataBits);
+    
 };
 #endif
