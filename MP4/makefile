@@ -4,7 +4,7 @@ LD=i386-elf-ld
 
 GCC_OPTIONS = -m32 -nostdlib -fno-builtin -nostartfiles -nodefaultlibs -fno-exceptions -fno-rtti -fno-stack-protector -fleading-underscore -fno-asynchronous-unwind-tables
 
-all: kernel.bin
+all: clean kernel.bin copyKernel bochs
 
 clean:
 	rm -f *.o *.bin
@@ -18,6 +18,11 @@ utils.o: utils.C utils.H
 assert.o: assert.C assert.H
 	$(GCC) $(GCC_OPTIONS) -c -o assert.o assert.C
 
+copyKernel:
+	./copykernel.sh
+
+bochs:
+	bochs -f bochsrc.bxrc
 
 # ==== VARIOUS LOW-LEVEL STUFF =====
 
@@ -63,8 +68,12 @@ paging_low.o: paging_low.asm paging_low.H
 page_table.o: page_table.C page_table.H paging_low.H vm_pool.H cont_frame_pool.H
 	$(GCC) $(GCC_OPTIONS) -c -o page_table.o page_table.C
 
-cont_frame_pool.o: cont_frame_pool.C cont_frame_pool.H
-	$(GCC) $(GCC_OPTIONS) -c -o cont_frame_pool.o cont_frame_pool.C
+# cont_frame_pool.o: cont_frame_pool_Bettati.C cont_frame_pool.H
+# 	scp cont_frame_pool_Bettati.otemp cont_frame_pool.o 
+# 	# $(GCC) $(GCC_OPTIONS) -c -o cont_frame_pool.o cont_frame_pool.C
+
+cont_frame_pool.o:
+	scp cont_frame_pool_Bettati.otemp cont_frame_pool.o 
 
 vm_pool.o: vm_pool.C vm_pool.H page_table.H
 	$(GCC) $(GCC_OPTIONS) -c -o vm_pool.o vm_pool.C
@@ -75,9 +84,9 @@ kernel.o: kernel.C console.H simple_timer.H page_table.H vm_pool.H
 	$(GCC) $(GCC_OPTIONS) -c -o kernel.o kernel.C
 
 kernel.bin: start.o utils.o kernel.o assert.o console.o gdt.o idt.o irq.o exceptions.o \
-   interrupts.o simple_timer.o simple_keyboard.o paging_low.o page_table.o cont_frame_pool.o vm_pool.o machine.o \
+   interrupts.o simple_timer.o simple_keyboard.o paging_low.o cont_frame_pool.o page_table.o vm_pool.o machine.o \
    machine_low.o 
 	$(LD) -melf_i386 -T linker.ld -o kernel.bin start.o utils.o kernel.o assert.o console.o \
    gdt.o idt.o irq.o exceptions.o \
-   interrupts.o simple_timer.o simple_keyboard.o paging_low.o page_table.o cont_frame_pool.o vm_pool.o machine.o \
+   interrupts.o simple_timer.o simple_keyboard.o paging_low.o cont_frame_pool.o page_table.o  vm_pool.o machine.o \
    machine_low.o

@@ -28,7 +28,7 @@
 #define MEM_HOLE_SIZE ((1 MB) / Machine::PAGE_SIZE)
 /* we have a 1 MB hole in physical memory starting at address 15 MB */
 
-#define FAULT_ADDR (4 MB)
+#define FAULT_ADDR (20 MB)
 /* used in the code later as address referenced to cause page faults. */
 #define NACCESS ((1 MB) / 4)
 /* NACCESS integer access (i.e. 4 bytes in each access) are made starting at
@@ -158,17 +158,13 @@ int main() {
 
     /* -- INITIALIZE FRAME POOLS -- */
 
-    ContFramePool kernel_mem_pool(KERNEL_POOL_START_FRAME, KERNEL_POOL_SIZE, 0,
-                                  0);
+    ContFramePool kernel_mem_pool(KERNEL_POOL_START_FRAME, KERNEL_POOL_SIZE, 0, 0);
 
-    unsigned long n_info_frames =
-        ContFramePool::needed_info_frames(PROCESS_POOL_SIZE);
+    unsigned long n_info_frames = ContFramePool::needed_info_frames(PROCESS_POOL_SIZE);
 
-    unsigned long process_mem_pool_info_frame =
-        kernel_mem_pool.get_frames(n_info_frames);
+    unsigned long process_mem_pool_info_frame = kernel_mem_pool.get_frames(n_info_frames);
 
-    ContFramePool process_mem_pool(PROCESS_POOL_START_FRAME, PROCESS_POOL_SIZE,
-                                   process_mem_pool_info_frame, n_info_frames);
+    ContFramePool process_mem_pool(PROCESS_POOL_START_FRAME, PROCESS_POOL_SIZE, process_mem_pool_info_frame, n_info_frames);
 
     /* Take care of the hole in the memory. */
     process_mem_pool.mark_inaccessible(MEM_HOLE_START_FRAME, MEM_HOLE_SIZE);
@@ -209,6 +205,29 @@ int main() {
     /* BY DEFAULT WE TEST THE PAGE TABLE IN MAPPED MEMORY!
          (COMMENT OUT THE FOLLOWING LINE TO TEST THE VM Pools! */
     // #define _TEST_PAGE_TABLE_
+
+    /* -- GENERATE MEMORY REFERENCES */
+
+    int *foo = (int *)FAULT_ADDR;
+    int i;
+
+    for (i = 0; i < NACCESS; i++) {
+        foo[i] = i;
+    }
+
+    Console::puts("DONE WRITING TO MEMORY. Now testing...\n");
+
+    for (i = 0; i < NACCESS; i++) {
+        if (foo[i] != i) {
+            Console::puts("TEST FAILED for access number:");
+            Console::putui(i);
+            Console::puts("\n");
+            break;
+        }
+    }
+    if (i == NACCESS) {
+        Console::puts("TEST PASSED\n");
+    }
 
 #ifdef _TEST_PAGE_TABLE_
 
