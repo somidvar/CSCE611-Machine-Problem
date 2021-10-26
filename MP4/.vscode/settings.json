@@ -3,6 +3,7 @@
         "kernel.C": "cpp",
         "page_table.C": "cpp",
         "cont_frame_pool.C": "cpp",
-        "cont_frame_pool_Bettati.C": "cpp"
+        "cont_frame_pool_Bettati.C": "cpp",
+        "vm_pool.C": "cpp"
     }
 }

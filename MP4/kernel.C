@@ -28,7 +28,7 @@
 #define MEM_HOLE_SIZE ((1 MB) / Machine::PAGE_SIZE)
 /* we have a 1 MB hole in physical memory starting at address 15 MB */
 
-#define FAULT_ADDR (20 MB)
+#define FAULT_ADDR (40 MB)
 /* used in the code later as address referenced to cause page faults. */
 #define NACCESS ((1 MB) / 4)
 /* NACCESS integer access (i.e. 4 bytes in each access) are made starting at
@@ -208,26 +208,21 @@ int main() {
 
     /* -- GENERATE MEMORY REFERENCES */
 
-    int *foo = (int *)FAULT_ADDR;
-    int i;
-
-    for (i = 0; i < NACCESS; i++) {
-        foo[i] = i;
-    }
-
-    Console::puts("DONE WRITING TO MEMORY. Now testing...\n");
-
-    for (i = 0; i < NACCESS; i++) {
-        if (foo[i] != i) {
-            Console::puts("TEST FAILED for access number:");
-            Console::putui(i);
-            Console::puts("\n");
-            break;
-        }
-    }
-    if (i == NACCESS) {
-        Console::puts("TEST PASSED\n");
-    }
+    // pt1.free_page(0);
+    // pt1.free_page(128);
+    // pt1.free_page(256);
+    // pt1.free_page(1023);
+    // pt1.free_page(1024);
+    // pt1.free_page(1025);
+    // pt1.free_page(1026);
+    unsigned long* data=(unsigned long*) (13*1024*1024*4);
+    Console::puts("Hajiiiiiii\n");
+    data[0];
+    
+    
+    pt1.free_page(13*1024);
+    // pt1.free_page(13*1024+1);
+    assert(false);
 
 #ifdef _TEST_PAGE_TABLE_
 
@@ -289,6 +284,7 @@ void GenerateVMPoolMemoryReferences(VMPool *pool, int size1, int size2) {
     current_pool = pool;
     for (int i = 1; i < size1; i++) {
         int *arr = new int[size2 * i];
+        Console::putui(i);
         if (pool->is_legitimate((unsigned long)arr) == false) {
             TestFailed();
         }
