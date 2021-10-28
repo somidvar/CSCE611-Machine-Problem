@@ -63,17 +63,13 @@ VMPool::VMPool(unsigned long _base_address, unsigned long _size, ContFramePool *
     }
     allocatedStart = (unsigned long *)(vmBaseAddress);           //pointing it to the base of the pool
     allocatedEnd = (unsigned long *)(vmBaseAddress + 4 * 1024);  //pointing it to the base of the pool+4 KB
-    tempPtr = (unsigned long *)(vmBaseAddress + 8 * 1024);       //pointing to the base of the pool+8 KB
     regionCounter = 0;
 
     //no region is in the allocated list
     for (int i = 0; i < 1024; i++) {
-        allocatedStart[i] = -1;
-        allocatedEnd[i] = -1;
+        allocatedStart[i] = 0;
+        allocatedEnd[i] = 0;
     }
-    Console::puts("****************************************\n");
-    Console::putui(vmBaseAddress);
-    Console::puts("****************************************\n");
     //adding the allocatedStart to the allocated list
     allocatedStart[0] = vmBaseAddress;
     allocatedEnd[0] = vmBaseAddress + 4 * 1024;
@@ -84,11 +80,6 @@ VMPool::VMPool(unsigned long _base_address, unsigned long _size, ContFramePool *
     allocatedEnd[1] = vmBaseAddress + 8 * 1024;
     regionCounter++;
 
-    //adding the temp to the allocated list
-    allocatedStart[2] = vmBaseAddress + 8 * 1024;
-    allocatedEnd[2] = vmBaseAddress + 12 * 1024;
-    regionCounter++;
-
     pageTable->register_pool(this);
     Console::puts("VMPool constructor ends\n");
 }
@@ -96,23 +87,26 @@ VMPool::VMPool(unsigned long _base_address, unsigned long _size, ContFramePool *
 unsigned long VMPool::allocate(unsigned long _size) {
     Console::puts("VMPool::allocate starts\n");
     unsigned long regionSize = _size;    //the region size is in bytes
-    if (regionSize % (4 * 1024) != 0) {  //rounding to a page which causes internal fragmentation. This makes the code much easier
+    if ((regionSize % (4 * 1024)) != 0) {  //rounding to a page which causes internal fragmentation. This makes the code much easier
         regionSize = regionSize >> 12;
         regionSize += 1;
-        regionSize << 12;
+        regionSize=regionSize << 12;
     }
-    Console::putui(regionSize);
     unsigned long regionBaseAdd = emptySpaceFinder(regionSize);
-    if (regionBaseAdd < 0) {
+    if (regionBaseAdd == 0) {
         Console::puts("MAYDAY at VMPool::allocate checkpoint 3\n");
-        assert(false);
+        return 0;
     }
     allocatedStart[regionCounter] = regionBaseAdd;
     allocatedEnd[regionCounter] = regionBaseAdd + regionSize;
     regionCounter++;
     allocatedListSorter();
-    Console::puts("VMPool::allocate ends\n");
+    Console::puts("VMPool::allocate ends with the base of");
+    Console::putui(regionBaseAdd);
+    Console::puts(" B\n");
+    return regionBaseAdd;
 }
+
 
 void VMPool::release(unsigned long _start_address) {
     Console::puts("VMPool::release function starts.\n");
@@ -132,38 +126,53 @@ void VMPool::release(unsigned long _start_address) {
     }
     if (!foundFlag) {
         Console::puts("MAYDAY at VMPool::release checkpoint 2\n");
-        assert(false);
+        return;
     }
     
     swapFunc(&allocatedStart[foundIndex], &allocatedStart[regionCounter - 1]);
     swapFunc(&allocatedEnd[foundIndex], &allocatedEnd[regionCounter - 1]);
-    regionReleaseAux(allocatedStart[foundIndex], allocatedEnd[foundIndex]);
+    regionReleaseAux(allocatedStart[regionCounter-1], allocatedEnd[regionCounter-1]);
 
-    allocatedStart[regionCounter - 1] = -1;
-    allocatedEnd[regionCounter - 1] = -1;
+    allocatedStart[regionCounter - 1] = 0;
+    allocatedEnd[regionCounter - 1] = 0;
     regionCounter--;
     allocatedListSorter();
     Console::puts("VMPool::release function ends.\n");
 }
 
 void VMPool::regionReleaseAux(unsigned long start, unsigned long end) {
+    Console::puts("VMPool::regionReleaseAux starts with start and end of ");
+    Console::putui(start/4/1024);
+    Console::putui(end/4/1024);
+    Console::puts(" # page\n");
     unsigned long pageStart, pageEnd;
-    pageStart = start << 12;
-    pageEnd = end << 12;
-    for (int i = pageStart; i < pageEnd; i++)
+    pageStart = start >> 12;
+    pageEnd = end >> 12;
+    for (unsigned long i = pageStart; i < pageEnd; i++){
         pageTable->free_page(i);
+    }
+    Console::puts("VMPool::regionReleaseAux ends.\n");    
 }
 
 bool VMPool::is_legitimate(unsigned long _address) {
-    return true;
-    ///////////////////////////////////////////---------------------------fix
-    // Console::puts("VMPool::is_legitimate\n");
-    // if (_address >= vmBaseAddress && _address <= (vmBaseAddress + vmSize))
-    //     return true;
-    // return false;
+    Console::puts("VMPool::is_legitimate starts for ");
+    Console::putui(_address);
+    Console::puts(" B \n");
+
+    unsigned long legitAddress=_address;
+    for(int i=0;i<regionCounter;i++){//searching all of the regions to see if the address is in any of the regions
+        if (legitAddress>= allocatedStart[i] && legitAddress<=allocatedEnd[i]){
+            Console::puts("VMPool::is_legitimate ends\n");
+            return true;
+        }
+    }
+    Console::puts("VMPool::is_legitimate ends\n");
+    return false;
 }
 
 unsigned long VMPool::emptySpaceFinder(unsigned long _size) {
+    Console::puts("VMPool::emptySpaceFinder starts with requested size of");
+
     unsigned long requestedSize = _size;
     unsigned long baseAddress;
     bool foundFlag = false;
@@ -171,20 +180,22 @@ unsigned long VMPool::emptySpaceFinder(unsigned long _size) {
     for (int i = 0; i < regionCounter-1; i++) {
         if (allocatedStart[i + 1] - allocatedEnd[i] >= requestedSize) {
             baseAddress = allocatedEnd[i];
+            Console::puts("VMPool::emptySpaceFinder ends\n");
             return baseAddress;
         }
     }
     //could not find any hole between the regions, so we have to check the space between the last region to the end of the pool
     if(vmSize+vmBaseAddress -allocatedEnd[regionCounter-1]>requestedSize){
         baseAddress=allocatedEnd[regionCounter-1];
+        Console::puts("VMPool::emptySpaceFinder ends with base add=");
+        Console::putui(baseAddress/1024);
+        Console::puts(" KB\n");
         return baseAddress;
     }
-    if (!foundFlag) {
-        Console::puts("MAYDAY at VMPool::emptySpaceFinder checkpoint 2\n");
-        assert(false);
-    }
-    return -1;
+    Console::puts("MAYDAY at VMPool::emptySpaceFinder checkpoint 2\n");
+    assert(false);
 }
+
 void VMPool::allocatedListSorter() {  //sorting allocatedStart and allocatedEnd using selection sort
     unsigned tempVal;
     for (int i = 0; i < regionCounter; i++) {
@@ -299,7 +310,7 @@ void VMPool::testOnly() {
 
 
 
-    
+
 
 
     // assert(false);

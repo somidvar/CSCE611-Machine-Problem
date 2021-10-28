@@ -60,7 +60,7 @@ class VMPool { /* Virtual Memory Pool */
 
     VMPool *next = NULL;
 
-    unsigned long *allocatedStart, *allocatedEnd, *tempPtr;
+    unsigned long *allocatedStart, *allocatedEnd;
     unsigned long regionCounter = 0;
 
     VMPool(unsigned long _base_address, unsigned long _size, ContFramePool *_frame_pool, PageTable *_page_table);

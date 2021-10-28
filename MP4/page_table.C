@@ -136,21 +136,21 @@ void PageTable::free_page(unsigned long _page_no) {
     Console::putui(_page_no);
     Console::puts("\n");
 
-    unsigned long pageAdd,pde,pte,metaData;
+    unsigned long pageAdd,pde,pte,metaData,frameNum;
     pageAdd=_page_no*PAGE_SIZE;
     metaData=PteGetterSetter(pageAdd,0,0);
+    frameNum=metaData;
+    frameNum=frameNum>>12;
+    metaData=metaData<<20;
+    metaData=metaData>>20;
     Console::putui(metaData);
     if((metaData&1)==0){
         Console::puts("The page is already free*******************\n");
-        return;
+        assert(false);
     }
-    metaData=metaData>>12;
-    Console::putui(metaData);
-    process_mem_pool->release_frames(metaData);//releasing the frame from process pool
-
-    metaData=0+2+0;//absent, read/write, kernel
+    process_mem_pool->release_frames(frameNum);//releasing the frame from process pool
+    metaData=0+2+0;//set to absent, read/write, kernel
     PteGetterSetter(pageAdd,metaData,0);//setting the page table entry to absent
-
     load();//refreshing the TLB
 }
 
