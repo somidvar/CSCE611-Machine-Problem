@@ -47,8 +47,22 @@ class VMPool { /* Virtual Memory Pool */
     ContFramePool *contFramePool;
     /* -- DEFINE YOUR VIRTUAL MEMORY POOL DATA STRUCTURE(s) HERE. */
 
+    //var and function defined by me
+    unsigned long emptySpaceFinder(unsigned long _size);
+    void regionReleaseAux(unsigned long start, unsigned long end);
+    void swapFunc(unsigned long *a, unsigned long *b);
+    void allocatedListSorter();
+
    public:
+    //variables defined by me
+    void testOnly();
     unsigned long vmBaseAddress, vmSize;
+
+    VMPool *next = NULL;
+
+    unsigned long *allocatedStart, *allocatedEnd, *tempPtr;
+    unsigned long regionCounter = 0;
+
     VMPool(unsigned long _base_address, unsigned long _size, ContFramePool *_frame_pool, PageTable *_page_table);
     /* Initializes the data structures needed for the management of this
     * virtual-memory pool.

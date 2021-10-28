@@ -54,7 +54,17 @@ class PageTable {
     unsigned long* page_directory; /* where is page directory located? */
     unsigned long* directMapping = 0;
 
+    //variable and function defined by me
+    static void PageInitilizer(unsigned long pageAdd);
+    static unsigned long PdeGetterSetter(unsigned long byteAddress, unsigned long metaData, unsigned long pdeEntry);  //returning the pde in the directory
+    static unsigned long PteGetterSetter(unsigned long byteAddress, unsigned long metaData, unsigned long pteInfo);   //returning the pte in the page table
+
    public:
+    //variable and function defined by me
+    unsigned long *vmPoolBase, *vmPoolSize;  //these are arrays storying the base address and size of the vm pools
+    int vmCounter = 0;                       //number of the vmpools
+    VMPool* head = NULL;
+
     static const unsigned int PAGE_SIZE = Machine::PAGE_SIZE;
     /* in bytes */
     static const unsigned int ENTRIES_PER_PAGE = Machine::PT_ENTRIES_PER_PAGE;
@@ -95,11 +105,6 @@ class PageTable {
 
     void free_page(unsigned long _page_no);
     /* If page is valid, release frame and mark page invalid. */
-
-    // Var defined by me
-    unsigned long* vmPoolBase,*vmPoolSize;//these are arrays storying the base address and size of the vm pools
-    int vmCounter=0;//number of the vmpools
-    
 };
 
 #endif

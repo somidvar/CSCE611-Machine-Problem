@@ -208,21 +208,64 @@ int main() {
 
     /* -- GENERATE MEMORY REFERENCES */
 
-    // pt1.free_page(0);
-    // pt1.free_page(128);
-    // pt1.free_page(256);
-    // pt1.free_page(1023);
-    // pt1.free_page(1024);
-    // pt1.free_page(1025);
-    // pt1.free_page(1026);
-    unsigned long* data=(unsigned long*) (13*1024*1024*4);
-    Console::puts("Hajiiiiiii\n");
-    data[0];
-    
-    
-    pt1.free_page(13*1024);
-    // pt1.free_page(13*1024+1);
-    assert(false);
+    // VMPool code_pool1(50 MB, 1 MB, &process_mem_pool, &pt1);
+    // VMPool code_pool2(53 MB, 1 MB, &process_mem_pool, &pt1);
+    // VMPool code_pool3(56 MB, 1 MB, &process_mem_pool, &pt1);
+    // VMPool code_pool4(58 MB, 1 MB, &process_mem_pool, &pt1);
+    // VMPool code_pool5(60 MB, 1 MB, &process_mem_pool, &pt1);
+    // VMPool code_pool6(62 MB, 1 MB, &process_mem_pool, &pt1);
+    // VMPool code_pool7(63 MB, 1 MB, &process_mem_pool, &pt1);
+    // VMPool code_pool8(70 MB, 1 MB, &process_mem_pool, &pt1);
+
+
+
+
+    // unsigned long* mamad=(unsigned long*) (15*4*1024*1024);
+    // Console::puts("i am here100000000\n");
+    // mamad[0]=1;
+    // Console::puts("i am here200000000\n");
+    // pt1.free_page(15*1024);
+    // pt1.free_page(15*1024);
+    // Console::puts("i am here300000000\n");
+    // mamad[0]=1;
+    // Console::puts("i am here400000000\n");
+    // VMPool jafar(2000 MB, 30 MB, &process_mem_pool, &pt1);
+
+
+    // jafar.allocatedListSorter();
+    // Console::putui(mamad[0]);
+    // Console::putui(mamad[1]);
+    // Console::putui(mamad[2]);
+    // Console::putui(mamad[3]);
+    // Console::putui(mamad[4]);
+
+
+    // unsigned long mamadAdd=100*1024*1024;
+    // unsigned long* mamad=(unsigned long*) (mamadAdd);
+    // Console::puts("############################\n");
+    // mamad[0]=1;
+    // mamad[1]=2;
+    // mamad[0]=100;
+    // mamad[2048]=2500;
+    // Console::puts("############################\n");
+    // Console::putui(mamad[0]);
+    // Console::putui(mamad[1]);
+    // Console::putui(mamad[2048]);
+
+
+
+
+
+
+
+
+
+    // VMPool jafar(2048 MB, 256 MB, &process_mem_pool, &pt1);
+    // jafar.testOnly();
+
+
+
+    // assert(false);
 
 #ifdef _TEST_PAGE_TABLE_
 
