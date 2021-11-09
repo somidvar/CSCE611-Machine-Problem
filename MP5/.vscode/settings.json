@@ -1,0 +1,10 @@
+{
+    "files.associations": {
+        "scheduler.C": "cpp",
+        "kernel.C": "cpp",
+        "thread.C": "cpp",
+        "page_table.C": "cpp",
+        "Queue.C": "cpp",
+        "mem_pool.H": "cpp"
+    }
+}
