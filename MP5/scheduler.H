@@ -60,47 +60,93 @@ class Scheduler {
    public:
     struct Node {
         Thread* thr;
-        int timeQuantum=0;
-        struct Node* next;
+        int timeQuantum = 0;
+        Node* next;
+        Node* prev;
     };
 
     struct Queue {
         int queueSize = 0;
         Node* tail = NULL;
         Node* head = NULL;
+        Node* foundedNode = NULL;
+        Node* tempNode = NULL;
 
         void enqueue(Thread* _thread) {
             struct Node* newElement = new Node();
             newElement->thr = _thread;
-            if (head == NULL) {
+            if (head == NULL && tail == NULL) {
                 head = newElement;
-            }
-            if (tail == NULL) {
                 tail = newElement;
+                head->prev = NULL;
+                head->next = NULL;
             } else {
                 tail->next = newElement;
+                newElement->prev = tail;
                 tail = newElement;
             }
             queueSize += 1;
         }
 
         Thread* dequeue() {
-            if (queueSize ==0){
+            if (queueSize == 0) {
                 Console::puts("MAYDAY AT Scheduler dequeue function, the queue is empty\n");
-                assert(false)              
+                assert(false)
             }
             Node* pred = head;
-            Thread* currentThread = head->thr;
+            Thread* threadDequeue = head->thr;
             if (queueSize == 1) {
-                Console::puts("This needs to be fixed\n");
-                assert(false)
-
-            } else {
-                head=head->next;
-                delete pred;
+                head = NULL;
+                tail = NULL;
+                delete[] pred;
                 queueSize--;
-                return currentThread;
+                return threadDequeue;
             }
+            head = head->next;
+            head->prev = NULL;
+            queueSize--;
+            delete[] pred;
+            return threadDequeue;
+        }
+        void pop(Node* _deleteNode) {
+            Node* deleted = _deleteNode;
+            Node* previousNode = NULL;
+            Node* nextNode = NULL;
+            if (deleted->prev == NULL && deleted->next == NULL) {  //only node
+                Console::puts("case1\n");
+                head = NULL;
+                tail = NULL;
+                delete[] deleted;
+                queueSize--;
+                return;
+            }
+            if (deleted->next == NULL) {  //tail node
+                Console::puts("case2\n");
+                previousNode = deleted->prev;
+                previousNode->next = NULL;
+                tail = previousNode;
+                delete[] deleted;
+                queueSize--;
+                return;
+            }
+            if (deleted->prev == NULL) {  //head node
+                Console::puts("case3\n");
+                nextNode = deleted->next;
+                nextNode->prev = NULL;
+                head = nextNode;
+                delete[] deleted;
+                queueSize--;
+                return;
+            }
+            Console::puts("case4\n");
+            previousNode = deleted->prev;
+            nextNode = deleted->next;
+
+            previousNode->next = nextNode;
+            nextNode->prev = previousNode;
+            queueSize--;
+
+            delete[] deleted;
         }
     };
 
@@ -132,11 +178,15 @@ class Scheduler {
     /* Remove the given thread from the scheduler in preparation for destruction
       of the thread. 
       Graciously handle the case where the thread wants to terminate itself.*/
+    virtual void threadFinder(Thread* _thread);
+    /* Finding the thread based on the thread ID in the readyQueue and placing it
+    in foundedNode.
+    */
+    static Scheduler* currentScheduler;
 
    private:
-    Queue* readyQueue;//this is the queue for scheduling
-    Thread* currentThread;//this is the current running thread
-    Thread* futureThread;//this is the current running thread
+    Queue* readyQueue;      //this is the queue for scheduling
+    Thread* currentThread;  //this is the current running thread
 };
 
 #endif

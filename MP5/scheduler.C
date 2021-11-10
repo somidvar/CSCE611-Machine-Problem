@@ -27,8 +27,6 @@
 /* DATA STRUCTURES */
 /*--------------------------------------------------------------------------*/
 
-/* -- (none) -- */
-
 /*--------------------------------------------------------------------------*/
 /* CONSTANTS */
 /*--------------------------------------------------------------------------*/
@@ -44,68 +42,55 @@
 /*--------------------------------------------------------------------------*/
 /* METHODS FOR CLASS   S c h e d u l e r  */
 /*--------------------------------------------------------------------------*/
-
-
-
+Scheduler *Scheduler::currentScheduler = NULL;
 
 Scheduler::Scheduler() {
-    // Queue jafar;
-    // int a = 100;
-    // int b = 200;
-    // int c = 300;
-    // int d = 400;
-
-    // jafar.enqueue(&a);
-    // {
-    //     Node* testN = jafar.head;
-    //     int* tempVal = testN->temp;
-    //     Console::puti(tempVal[0]);
-    //     Console::puts("\n");
-    // }
-    // jafar.enqueue(&b);
-    // {
-    //     Node* testN = jafar.head;
-    //     int* tempVal = testN->temp;
-    //     Console::puti(tempVal[0]);
-    //     Console::puts("\n");
-    // }
-    // jafar.enqueue(&c);
-    // jafar.enqueue(&d);
-
-    // Node* testN = jafar.head;
-    // for (int i = 0; i < 4; i++) {
-    //     int* tempVal = testN->temp;
-    //     Console::puti(tempVal[0]);
-    //     Console::puts("\n");
-    //     testN = testN->next;
-    // }
-
     readyQueue = new Queue();
     Thread* currentThread=Thread::CurrentThread();
+    Scheduler::currentScheduler=this;
     Console::puts("Constructed Scheduler.\n");
 }
 
 void Scheduler::yield() {
-
-    
-    futureThread=readyQueue->dequeue();
-    // currentThread->dispatch_to(futureThread);
-    // currentThread=futureThread;
-    
-
-
-    
+    if(readyQueue->queueSize==0){
+        Console::puts("MAYDAY at Scheduler yield function\n");
+        assert(false);
+    }
+    currentThread=readyQueue->dequeue();
+    Thread::dispatch_to(currentThread);
 }
 
 void Scheduler::resume(Thread* _thread) {
     add(_thread);
-        
 }
 
 void Scheduler::add(Thread* _thread) {
     readyQueue->enqueue(_thread);
+    readyQueue->tempNode=readyQueue->head;
+    for(int i=0;i<readyQueue->queueSize;i++){
+        Console::puti(readyQueue->tempNode->thr->ThreadId());
+        readyQueue->tempNode=readyQueue->tempNode->next;
+    }
 }
 
 void Scheduler::terminate(Thread* _thread) {
-    assert(false);
+    threadFinder(_thread);
+    readyQueue->pop(readyQueue->foundedNode);
+}
+
+void Scheduler::threadFinder(Thread* _thread){
+    bool foundFlag=false;
+    readyQueue->foundedNode=readyQueue->head;
+    for(int i=0;i<readyQueue->queueSize;i++){
+        if(readyQueue->foundedNode->thr->ThreadId()==_thread->ThreadId()){
+            foundFlag=true;
+            break;
+        }
+        readyQueue->foundedNode=readyQueue->foundedNode->next;
+    }
+    if(!foundFlag){
+        Console::puts("MAYDAY at Scheduler threadFinder, no match\n");
+        readyQueue->foundedNode=NULL;
+        assert(false);
+    }    
 }
