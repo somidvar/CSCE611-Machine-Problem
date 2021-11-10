@@ -277,6 +277,7 @@ int main() {
 
     /* -- LET'S CREATE SOME THREADS... */
 
+
     Console::puts("CREATING THREAD 1...\n");
     char * stack1 = new char[1024];
     thread1 = new Thread(fun1, stack1, 1024);
@@ -297,6 +298,7 @@ int main() {
     thread4 = new Thread(fun4, stack4, 1024);
     Console::puts("DONE\n");
 
+    
 #ifdef _USES_SCHEDULER_
 
     /* WE ADD thread2 - thread4 TO THE READY QUEUE OF THE SCHEDULER. */

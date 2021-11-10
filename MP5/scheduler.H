@@ -113,32 +113,38 @@ class Scheduler {
             Node* previousNode = NULL;
             Node* nextNode = NULL;
             if (deleted->prev == NULL && deleted->next == NULL) {  //only node
-                Console::puts("case1\n");
+                Console::puts("case1, the queue size is now=");
                 head = NULL;
                 tail = NULL;
                 delete[] deleted;
                 queueSize--;
+                Console::puti(queueSize);
+                Console::puts("\n");
                 return;
             }
             if (deleted->next == NULL) {  //tail node
-                Console::puts("case2\n");
+                Console::puts("case2, the queue size is now=");
                 previousNode = deleted->prev;
                 previousNode->next = NULL;
                 tail = previousNode;
                 delete[] deleted;
                 queueSize--;
+                Console::puti(queueSize);
+                Console::puts("\n");
                 return;
             }
             if (deleted->prev == NULL) {  //head node
-                Console::puts("case3\n");
+                Console::puts("case3, the queue size is now=");
                 nextNode = deleted->next;
                 nextNode->prev = NULL;
                 head = nextNode;
                 delete[] deleted;
                 queueSize--;
+                Console::puti(queueSize);
+                Console::puts("\n");
                 return;
             }
-            Console::puts("case4\n");
+            Console::puts("case4, the queue size is now=");
             previousNode = deleted->prev;
             nextNode = deleted->next;
 
@@ -147,6 +153,8 @@ class Scheduler {
             queueSize--;
 
             delete[] deleted;
+            Console::puti(queueSize);
+            Console::puts("\n");
         }
     };
 
@@ -182,6 +190,7 @@ class Scheduler {
     /* Finding the thread based on the thread ID in the readyQueue and placing it
     in foundedNode.
     */
+
     static Scheduler* currentScheduler;
 
    private:

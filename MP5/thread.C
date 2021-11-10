@@ -70,8 +70,9 @@ static void thread_shutdown() {
        It terminates the thread by releasing memory and any other resources held by the thread. 
        This is a bit complicated because the thread termination interacts with the scheduler.
      */
+    Thread* threadDeleted=current_thread;
     Scheduler::currentScheduler->yield();
-    Scheduler::currentScheduler->terminate(current_thread);
+    Scheduler::currentScheduler->terminate(threadDeleted);
     
     /* Let's not worry about it for now. 
        This means that we should have non-terminating thread functions. 

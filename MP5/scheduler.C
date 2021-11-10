@@ -66,11 +66,6 @@ void Scheduler::resume(Thread* _thread) {
 
 void Scheduler::add(Thread* _thread) {
     readyQueue->enqueue(_thread);
-    readyQueue->tempNode=readyQueue->head;
-    for(int i=0;i<readyQueue->queueSize;i++){
-        Console::puti(readyQueue->tempNode->thr->ThreadId());
-        readyQueue->tempNode=readyQueue->tempNode->next;
-    }
 }
 
 void Scheduler::terminate(Thread* _thread) {
