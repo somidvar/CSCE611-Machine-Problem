@@ -26,13 +26,14 @@
 /*--------------------------------------------------------------------------*/
 /* M e m o r y   P o o l  */
 /*--------------------------------------------------------------------------*/
-
+MemPool *MemPool::currentMemPool = NULL;
 MemPool::MemPool(FramePool * _frame_pool, int _n_frames) {
   Console::puts("Allocating Memory Pool... ");
   start_address = _frame_pool->get_frame();
   for (int i = 1; i < _n_frames; i++) {
       unsigned long next_frame_addr = _frame_pool->get_frame();
   }
+  MemPool::currentMemPool=this;
   Console::puts("done\n");
 }     
 

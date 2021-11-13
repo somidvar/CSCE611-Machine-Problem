@@ -55,6 +55,7 @@ private:
                                (for future use) */
 
     static int nextFreePid; /* Used to assign unique id's to threads. */
+    
 
     void push(unsigned long _val);
     /* Push the given value on the stack of the thread. */
@@ -63,8 +64,13 @@ private:
     /* Sets up the initial context for the given kernel-only thread. 
        The thread is supposed the call the function _tfunction upon start.
     */
+
+   
  
 public: 
+
+   char* getStack();// returning the address of the thread stack
+
     Thread(Thread_Function _tf, char * _stack, unsigned int _stack_size);
     /* Create a thread that is set up to execute the given thread function. 
        The thread is given a pointer to the stack to use. 

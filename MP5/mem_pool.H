@@ -58,6 +58,8 @@ public:
    /* Releases a region of previously allocated memory. The region
     * is identified by its start address, which was returned when the
     * region was allocated. */
+
+   static MemPool* currentMemPool;
 };
 
 #endif

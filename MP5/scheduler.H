@@ -186,12 +186,13 @@ class Scheduler {
     /* Remove the given thread from the scheduler in preparation for destruction
       of the thread. 
       Graciously handle the case where the thread wants to terminate itself.*/
-    virtual void threadFinder(Thread* _thread);
+    virtual bool threadFinder(Thread* _thread);
     /* Finding the thread based on the thread ID in the readyQueue and placing it
     in foundedNode.
     */
 
-    static Scheduler* currentScheduler;
+    static Scheduler* currentScheduler; //static member which is set to the currently active scheduler so that Thread class can acess it
+    void stackRemover(char* threadStack);//base address of the thread stack to be released
 
    private:
     Queue* readyQueue;      //this is the queue for scheduling
