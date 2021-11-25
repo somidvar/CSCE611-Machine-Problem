@@ -4,6 +4,7 @@
         "blocking_disk.C": "cpp",
         "thread.C": "cpp",
         "simple_disk.C": "cpp",
-        "scheduler.C": "cpp"
+        "scheduler.C": "cpp",
+        "machine.C": "cpp"
     }
 }

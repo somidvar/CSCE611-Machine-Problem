@@ -22,6 +22,10 @@
 /*--------------------------------------------------------------------------*/
 
 #include "simple_disk.H"
+#include "assert.H"
+#include "utils.H"
+#include "console.H"
+#include "scheduler.H"
 
 /*--------------------------------------------------------------------------*/
 /* DATA STRUCTURES */ 
