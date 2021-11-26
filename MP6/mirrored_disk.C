@@ -19,7 +19,6 @@ void MirroredDisk::read(unsigned long _block_no, unsigned char* _buf) {
         Scheduler::currentScheduler->yield();
     }
     SimpleDisk::bufGetter(_buf);
-    // assert(false); 
 }
 void MirroredDisk::write(unsigned long _block_no, unsigned char* _buf) {
     SimpleDisk::disk_id=DISK_ID::MASTER;

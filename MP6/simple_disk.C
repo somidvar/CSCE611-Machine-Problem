@@ -59,14 +59,6 @@ void SimpleDisk::issue_operation(DISK_OPERATION _op, unsigned long _block_no) {
     /* send next 8 bits of block number */
     Machine::outportb(0x1F5, (unsigned char)(_block_no >> 16));
     /* send next 8 bits of block number */
-    if(disk_id==DISK_ID::DEPENDENT && _op==DISK_OPERATION::READ){
-        Console::puts("I am in trap\n");
-        assert(false);
-        while(true){
-
-        }
-        
-    }
     unsigned int disk_no = disk_id == DISK_ID::MASTER ? 0 : 1;
     Machine::outportb(0x1F6, ((unsigned char)(_block_no >> 24) & 0x0F) | 0xE0 | (disk_no << 4));
     /* send drive indicator, some bits, 
