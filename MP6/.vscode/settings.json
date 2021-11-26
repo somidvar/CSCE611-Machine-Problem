@@ -5,6 +5,9 @@
         "thread.C": "cpp",
         "simple_disk.C": "cpp",
         "scheduler.C": "cpp",
-        "machine.C": "cpp"
+        "machine.C": "cpp",
+        "mirrored_disk.C": "cpp",
+        "mem_pool.C": "cpp",
+        "simple_timer.C": "cpp"
     }
 }

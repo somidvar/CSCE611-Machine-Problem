@@ -68,6 +68,9 @@ simple_disk.o: simple_disk.C simple_disk.H
 blocking_disk.o: blocking_disk.C simple_disk.H
 	$(GCC) $(GCC_OPTIONS) -c -o blocking_disk.o blocking_disk.C
 
+mirrored_disk.o: mirrored_disk.C mirrored_disk.H
+	$(GCC) $(GCC_OPTIONS) -c -o mirrored_disk.o mirrored_disk.C
+
 # ==== MEMORY =====
 
 frame_pool.o: frame_pool.C frame_pool.H 
@@ -95,10 +98,10 @@ kernel.o: kernel.C machine.H console.H gdt.H idt.H irq.H exceptions.H interrupts
 kernel.bin: start.o utils.o kernel.o \
    assert.o console.o gdt.o idt.o irq.o exceptions.o \
    interrupts.o simple_timer.o simple_keyboard.o frame_pool.o mem_pool.o \
-   thread.o threads_low.o simple_disk.o blocking_disk.o \
+   thread.o threads_low.o simple_disk.o blocking_disk.o mirrored_disk.o \
     scheduler.o machine.o machine_low.o 
 	$(LD) -melf_i386 -T linker.ld -o kernel.bin start.o utils.o kernel.o \
    assert.o console.o gdt.o idt.o irq.o exceptions.o interrupts.o \
    simple_timer.o simple_keyboard.o frame_pool.o mem_pool.o \
-   thread.o threads_low.o simple_disk.o blocking_disk.o \
+   thread.o threads_low.o simple_disk.o blocking_disk.o mirrored_disk.o \
     scheduler.o machine.o machine_low.o

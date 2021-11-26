@@ -52,3 +52,6 @@ void BlockingDisk::write(unsigned long _block_no, unsigned char* _buf) {
     }
     SimpleDisk::bufSetter(_buf);
 }
+bool BlockingDisk::isReady(){
+    return is_ready();
+}

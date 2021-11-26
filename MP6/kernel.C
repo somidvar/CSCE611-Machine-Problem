@@ -45,6 +45,7 @@
 #include "mem_pool.H"
 #include "simple_timer.H" /* TIMER MANAGEMENT  */
 #include "thread.H"       /* THREAD MANAGEMENT */
+#include "mirrored_disk.H"
 
 #ifdef _USES_SCHEDULER_
 #include "scheduler.H" /* WE WILL NEED A SCHEDULER WITH BlockingDisk */
@@ -103,6 +104,7 @@ Scheduler *SYSTEM_SCHEDULER;
 
 /* -- A POINTER TO THE SYSTEM DISK */
 BlockingDisk *SYSTEM_DISK;
+// MirroredDisk * SYSTEM_DISK;
 
 #define SYSTEM_DISK_SIZE (10 MB)
 
@@ -170,8 +172,7 @@ void fun2() {
 
     unsigned char buf[DISK_BLOCK_SIZE];
     int read_block = 1;
-    int write_block = 1;
-
+    int write_block = 0;
     for (int j = 0;; j++) {
         /* -- Read */
         Console::puts("Reading a block from disk...\n");
@@ -300,6 +301,7 @@ int main() {
     /* -- DISK DEVICE -- */
 
     SYSTEM_DISK = new BlockingDisk(DISK_ID::MASTER, SYSTEM_DISK_SIZE);
+    // SYSTEM_DISK = new MirroredDisk(DISK_ID::MASTER,SYSTEM_DISK_SIZE);
 
     /* NOTE: The timer chip starts periodically firing as 
              soon as we enable interrupts.
