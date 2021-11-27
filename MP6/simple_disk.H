@@ -49,6 +49,11 @@ class SimpleDisk {
 
    protected:
     /* -- HERE WE CAN DEFINE THE BEHAVIOR OF DERIVED DISKS */
+    void bufGetter(unsigned char* _buf);  //reading the buffer into _buf
+    void bufSetter(unsigned char* _buf);  //writting the buffer from _buf
+    static int lockFlag;                  //HDD lock flag
+    static void unlock();                 //setting currentThreadID to -1 to indicate that it is not locked
+    
     void issue_operation(DISK_OPERATION _op, unsigned long _block_no);
     /* Send a sequence of commands to the controller to initialize the READ/WRITE 
         operation. This operation is called by read() and write(). */
@@ -89,10 +94,6 @@ class SimpleDisk {
 
     virtual void write(unsigned long _block_no, unsigned char* _buf);
     /* Writes 512 Bytes from the buffer to the given block on the disk. */
-    void bufGetter(unsigned char* _buf);  //reading the buffer into _buf
-    void bufSetter(unsigned char* _buf);  //writting the buffer from _buf
-    static int lockFlag; //HDD lock flag
-    static void unlock();//setting currentThreadID to -1 to indicate that it is not locked
 };
 
 #endif

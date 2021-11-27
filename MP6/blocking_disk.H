@@ -41,6 +41,7 @@
 class BlockingDisk : public SimpleDisk {
    private:
    bool permitted();//if the thread has the lock over the HDD return true, otherwise yield the CPU and return false
+   void sleep(); //give up the CPU till the driver or file become avaialable
 public:
    BlockingDisk(DISK_ID _disk_id, unsigned int _size); 
    /* Creates a BlockingDisk device with the given size connected to the 
@@ -57,8 +58,6 @@ public:
 
    virtual void write(unsigned long _block_no, unsigned char * _buf);
    /* Writes 512 Bytes from the buffer to the given block on the disk. */
-
-   virtual bool isReady();
 
 };
 
