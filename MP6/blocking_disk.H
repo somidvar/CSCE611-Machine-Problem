@@ -27,6 +27,7 @@
 #include "console.H"
 #include "scheduler.H"
 
+
 /*--------------------------------------------------------------------------*/
 /* DATA STRUCTURES */ 
 /*--------------------------------------------------------------------------*/
@@ -38,6 +39,8 @@
 /*--------------------------------------------------------------------------*/
 
 class BlockingDisk : public SimpleDisk {
+   private:
+   bool permitted();//if the thread has the lock over the HDD return true, otherwise yield the CPU and return false
 public:
    BlockingDisk(DISK_ID _disk_id, unsigned int _size); 
    /* Creates a BlockingDisk device with the given size connected to the 

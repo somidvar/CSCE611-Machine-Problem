@@ -91,6 +91,8 @@ class SimpleDisk {
     /* Writes 512 Bytes from the buffer to the given block on the disk. */
     void bufGetter(unsigned char* _buf);  //reading the buffer into _buf
     void bufSetter(unsigned char* _buf);  //writting the buffer from _buf
+    static int lockFlag; //HDD lock flag
+    static void unlock();//setting currentThreadID to -1 to indicate that it is not locked
 };
 
 #endif

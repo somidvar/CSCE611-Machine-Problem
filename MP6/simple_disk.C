@@ -32,6 +32,7 @@
 /*--------------------------------------------------------------------------*/
 /* CONSTRUCTOR */
 /*--------------------------------------------------------------------------*/
+int SimpleDisk::lockFlag=0;//setting the value to unlocked
 
 SimpleDisk::SimpleDisk(DISK_ID _disk_id, unsigned int _size) {
     disk_id = _disk_id;
@@ -111,4 +112,8 @@ void SimpleDisk::bufSetter(unsigned char* _buf) {
         tmpw = _buf[2 * i] | (_buf[2 * i + 1] << 8);
         Machine::outportw(0x1F0, tmpw);
     }
+}
+
+void SimpleDisk::unlock(){
+    lockFlag=0;
 }
