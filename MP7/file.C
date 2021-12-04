@@ -28,7 +28,9 @@
 
 File::File(FileSystem *_fs, int _id) {
     Console::puts("Opening file.\n");
-    assert(false);
+    currentFileSystem = _fs;
+    Inode *fileINode = currentFileSystem->LookupFile(_id);
+    currentDisk = currentFileSystem->diskgetter();
 }
 
 File::~File() {
@@ -43,20 +45,53 @@ File::~File() {
 
 int File::Read(unsigned int _n, char *_buf) {
     Console::puts("reading from file\n");
-    assert(false);
+    for (int i = 0; i < _n; i++)
+        _buf[i] = NULL;
+
+    unsigned short readChar = 0;
+    char *fileContent = new char[SimpleDisk::BLOCK_SIZE];
+    currentDisk->read(fileINode->blockID, fileContent);
+    for (int i = 0; i < _n; i++) {
+        if (i + cursorPos > fileSize) {
+            Console::puts("MAYDAY at File Read, requested more char than the file length");
+            return readChar;
+        }
+        _buf[i] = fileContent[i + cursorPos];
+        readChar++;
+    }
+    cursorPos+=readChar;
+    return readChar;
 }
 
 int File::Write(unsigned int _n, const char *_buf) {
     Console::puts("writing to file\n");
-    assert(false);
+    char* fileContent=new char[SimpleDisk::BLOCK_SIZE];
+    if(cursorPos!=0)
+        Read(cursorPos,fileContent);//reading the content of the file prior to the cursorposition
+
+    unsigned short writeChar = 0;
+    
+    for (int i = 0; i < _n; i++) {
+        if (i + cursorPos > fileSize) {
+            Console::puts("MAYDAY at File Read, requested more char than the file length");
+            return writeChar;
+        }
+        fileContent[i+cursorPos] = _buf[i];
+        writeChar++;
+    }
+    currentDisk->write(fileINode->blockID, fileContent);
+    cursorPos+=writeChar;
+    return writeChar;
 }
 
 void File::Reset() {
     Console::puts("resetting file\n");
-    assert(false);
+    cursorPos = 0;
 }
 
 bool File::EoF() {
     Console::puts("checking for EoF\n");
-    assert(false);
+    if (cursorPos == fileSize)
+        return true;
+    return false;
 }

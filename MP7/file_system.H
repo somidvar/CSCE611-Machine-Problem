@@ -111,7 +111,7 @@ class FileSystem {
     ~FileSystem();
     /* Unmount file system if it has been mounted. */
 
-    bool Save(SimpleDisk *_disk);  // to save the filesystem into the disk
+    bool Save();  // to save the filesystem into the disk
 
     bool Mount(SimpleDisk *_disk);
     /* Associates this file system with a disk. Limit to at most one file system per disk.
@@ -130,5 +130,7 @@ class FileSystem {
 
     bool DeleteFile(int _file_id);
     /* Delete file with given id in the file system; free any disk block occupied by the file. */
+
+    SimpleDisk* diskgetter();
 };
 #endif

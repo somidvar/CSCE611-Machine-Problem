@@ -44,6 +44,7 @@ FileSystem::FileSystem() {
 
 FileSystem::~FileSystem() {
     Console::puts("unmounting file system\n");
+    Save();
     /* Make sure that the inode list and the free list are saved. */
     assert(false);
 }
@@ -52,20 +53,21 @@ FileSystem::~FileSystem() {
 /* FILE SYSTEM FUNCTIONS */
 /*--------------------------------------------------------------------------*/
 
-bool FileSystem::Mount(SimpleDisk* _disk) {
+bool FileSystem::Mount(SimpleDisk *_disk) {
     Console::puts("mounting file system from disk\n");
 
+    disk=_disk;
     unsigned char* iNodeData = new unsigned char[64 * 8];
-    _disk->read(0, freeBlockBitmap);
-    _disk->read(1, iNodeData);
+    disk->read(0, freeBlockBitmap);
+    disk->read(1, iNodeData);
     iNodesSetter((unsigned long long*)iNodeData);
     return true;
 }
-bool FileSystem::Save(SimpleDisk* _disk) {
-    _disk->write(0, freeBlockBitmap);  // saving the freeBlockBitmap into block 0
+bool FileSystem::Save() {
+    disk->write(0, freeBlockBitmap);  // saving the freeBlockBitmap into block 0
     unsigned long long* iNodesData = new unsigned long long[64 * 8];
     unsigned char* toBeWritten = (unsigned char*)iNodesData;
-    _disk->write(1, toBeWritten);  // saving the iNodes data into block 1
+    disk->write(1, toBeWritten);  // saving the iNodes data into block 1
 }
 
 bool FileSystem::Format(SimpleDisk* _disk, unsigned int _size) {  // static!
@@ -228,4 +230,7 @@ void FileSystem::releaseInode(Inode* _deleteINode) {
 }
 void FileSystem::releaseBlock(int _blockNum) {
     freeBlockBitmap[_blockNum] = 1;
+}
+SimpleDisk* FileSystem::diskgetter(){
+    return disk;
 }
