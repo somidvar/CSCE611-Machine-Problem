@@ -42,11 +42,10 @@ class Inode {
                               // to the Inode.
 
    private:
-    unsigned short id;  // File "name"
-    unsigned short blockID;//the block where the data sits
-    unsigned short cursorPos;//position of the cursor when writting or reading
-    unsigned short fileSize;//file size in blocks
-    
+    unsigned short id;            // File "name"
+    unsigned short blockID;       // the block where the data sits
+    unsigned short reservedBits;  // position of the cursor when writting or reading
+    unsigned short fileSize;      // file size in blocks
 
     /* You will need additional information in the inode, such as allocation
        information. */
@@ -58,10 +57,6 @@ class Inode {
 
     /* You may need a few additional functions to help read and store the
        inodes from and to disk. */
-
-   void iNodeSerializer(Inode* _iNode,unsigned long &data);//converting the _iNode to a unsigned long which is 8 Byte
-   void iNodeDeserializer(unsigned long data,unsigned short &id, unsigned short &blockID,unsigned short &cursorPos,unsigned short &fileSize);//converting a 8 Byte value into iNode properties
-
 };
 
 /*--------------------------------------------------------------------------*/
@@ -86,10 +81,13 @@ class FileSystem {
     static constexpr unsigned int MAX_INODES = SimpleDisk::BLOCK_SIZE / sizeof(Inode);
     /* Just as an example, you can store MAX_INODES in a single INODES block */
 
-    Inode *inodes;  // the inode list
-    /* The inode list */
+    Inode *inodes;                                       // the inode list
+                                                         /* The inode list */
+    void iNodesGetter(unsigned long long *_iNodesData);  // converting iNodes to a unsigned long long* which is 8*64 Byte
+    void iNodesSetter(unsigned long long *_iNodesData);  // converting a 8*64 Byte value into iNodes
+    unsigned short inodeCounter;                         // number of free iNodes
 
-    unsigned char *freeBlockBitmap, *inodesBitmap;  // bitmap of the disk blocks and inodes where 0 means free and 1 is busy
+    unsigned char *freeBlockBitmap;  // bitmap of the disk blocks and inodes where 0 means free and 1 is busy
     /* The free-block list. You may want to implement the "list" as a bitmap.
        Feel free to use an unsigned char to represent whether a block is free or not;
        no need to go to bits if you don't want to.
@@ -102,7 +100,9 @@ class FileSystem {
        blocks. These functions also come useful to class Inode and File. */
 
     int getFreeBlock();
-    int getFreeInode();
+    Inode *getFreeInode();
+    void releaseInode(Inode *deleteINode);
+    void releaseBlock(int _blockNum);
 
    public:
     FileSystem();
@@ -110,6 +110,8 @@ class FileSystem {
 
     ~FileSystem();
     /* Unmount file system if it has been mounted. */
+
+    bool Save(SimpleDisk *_disk);  // to save the filesystem into the disk
 
     bool Mount(SimpleDisk *_disk);
     /* Associates this file system with a disk. Limit to at most one file system per disk.

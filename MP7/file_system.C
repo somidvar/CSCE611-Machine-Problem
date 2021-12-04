@@ -39,8 +39,7 @@
 
 FileSystem::FileSystem() {
     Console::puts("In FileSystem constructor.\n");
-
-    assert(false);
+    inodes = new Inode[64];
 }
 
 FileSystem::~FileSystem() {
@@ -55,30 +54,33 @@ FileSystem::~FileSystem() {
 
 bool FileSystem::Mount(SimpleDisk* _disk) {
     Console::puts("mounting file system from disk\n");
-    SimpleDisk* currentDisk = _disk;
 
-    unsigned char* inodesBitmap;
-    currentDisk->read(0, inodesBitmap);
-    currentDisk->read(1, freeBlockBitmap);
-
-    assert(false);
+    unsigned char* iNodeData = new unsigned char[64 * 8];
+    _disk->read(0, freeBlockBitmap);
+    _disk->read(1, iNodeData);
+    iNodesSetter((unsigned long long*)iNodeData);
+    return true;
+}
+bool FileSystem::Save(SimpleDisk* _disk) {
+    _disk->write(0, freeBlockBitmap);  // saving the freeBlockBitmap into block 0
+    unsigned long long* iNodesData = new unsigned long long[64 * 8];
+    unsigned char* toBeWritten = (unsigned char*)iNodesData;
+    _disk->write(1, toBeWritten);  // saving the iNodes data into block 1
 }
 
 bool FileSystem::Format(SimpleDisk* _disk, unsigned int _size) {  // static!
     Console::puts("formatting disk\n");
-    SimpleDisk* currentDisk = _disk;
     unsigned char* temp = new unsigned char[SimpleDisk::BLOCK_SIZE];
-    currentDisk->write(0, temp);  // resetting the inodeBitmap
+    _disk->write(1, temp);  // resetting the inodeBitmap
 
-    temp[0] = 1;
-    temp[1] = 1;
-    currentDisk->write(1, temp);  // resetting the freeBlockBitmap
+    for(int i=2;i<SimpleDisk::BLOCK_SIZE;i++)//setting all but the first two blocks to available
+        temp[i]=1;
 
+    _disk->write(0, temp);  // resetting the freeBlockBitmap
+    return true;
     /* Here you populate the disk with an initialized (probably empty) inode list
        and a free list. Make sure that blocks used for the inodes and for the free list
        are marked as used, otherwise they may get overwritten. */
-
-    assert(false);
 }
 
 Inode* FileSystem::LookupFile(int _file_id) {
@@ -86,7 +88,13 @@ Inode* FileSystem::LookupFile(int _file_id) {
     Console::puti(_file_id);
     Console::puts("\n");
     /* Here you go through the inode list to find the file. */
-    assert(false);
+
+    for (int i = 0; i < 64; i++) {
+        Inode* node = &inodes[i];
+        if (node->id == _file_id)
+            return node;
+    }
+    return NULL;
 }
 
 bool FileSystem::CreateFile(int _file_id) {
@@ -94,32 +102,34 @@ bool FileSystem::CreateFile(int _file_id) {
     Console::puti(_file_id);
     Console::puts("\n");
 
-    if(LookupFile(_file_id)==NULL)
+    if (LookupFile(_file_id) != NULL)
         return false;
 
-    int newInode=getFreeBlock();
-    int newDataBlock=getFreeBlock();
-    inodesBitmap[newDataBlock]=newInode; //the metadata of this block is stored at newInode 
-    inodesBitmap[newInode]=-1;//this block does not have any INode
-    Inode *myInode=new Inode();
-    myInode->id=_file_id;
-    myInode->cursorPos=0;
-    myInode->blockID=newDataBlock;
-    myInode->fileSize=1;
+    int newDataBlock = getFreeBlock();
+    Inode* newNode = getFreeInode();
+    newNode->id = _file_id;
+    newNode->reservedBits = 0;
+    newNode->blockID = newDataBlock;
+    newNode->fileSize = 1;
     return true;
-    
-
 
     /* Here you check if the file exists already. If so, throw an error.
        Then get yourself a free inode and initialize all the data needed for the
        new file. After this function there will be a new file on disk. */
-    assert(false);
 }
 
 bool FileSystem::DeleteFile(int _file_id) {
     Console::puts("deleting file with id:");
     Console::puti(_file_id);
     Console::puts("\n");
+
+    Inode* deleteINode = LookupFile(_file_id);
+    if (deleteINode == NULL)
+        return false;
+    releaseBlock(deleteINode->blockID);
+    releaseInode(deleteINode);
+    return true;
+
     /* First, check if the file exists. If not, throw an error.
        Then free all blocks that belong to the file and delete/invalidate
        (depending on your implementation of the inode list) the inode. */
@@ -127,59 +137,95 @@ bool FileSystem::DeleteFile(int _file_id) {
 
 int FileSystem::getFreeBlock() {
     for (int i = 0; i < SimpleDisk::BLOCK_SIZE; i++) {
-        if (freeBlockBitmap[i] == 0) {
-            freeBlockBitmap[i] = 1;
+        if (freeBlockBitmap[i] == 1) {
+            freeBlockBitmap[i] = 0;
             return i;
         }
     }
-    return -1;
+    Console::puts("MAYDAY at getFreeBlcok, there is no more block available\n");
+    assert(false);
 }
-int FileSystem::getFreeInode() {
-    // for(int i=0;i<SimpleDisk::BLOCK_SIZE;i++){
-    //     if(freeBlockBitmap[i]==0){
-    //         freeBlockBitmap[i]=1;
-    //         return i;
-    //     }
-    // }
-    // return -1;
+Inode* FileSystem::getFreeInode() {
+    Inode* node;
+    for (int i = 0; i < 64; i++) {
+        node = &inodes[i];
+        if (node->id == 0) {
+            inodeCounter++;
+            return node;
+        }
+    }
+    Console::puts("Mayday in getFreeInode. There is no more iNode avaialble\n");
+    assert(false);
 }
 
-void Inode::iNodeSerializer(Inode* _iNode,unsigned long &_data){
-    int shifter=0;
-    _data=0;
-    _data+=((_iNode->id)<<shifter);//bit 0 to 16 is the blockName
-    shifter+=16;
-    _data+=((_iNode->blockID)<<shifter);//bit 16 to 31 is the blockID
-    shifter+=16;
-    _data+=((_iNode->cursorPos)<<shifter);//bit 32 to 47 is the cursorPos
-    shifter+=16;
-    _data+=((_iNode->fileSize)<<shifter);//bit 48 to 64 is the fileSize
+void FileSystem::iNodesGetter(unsigned long long* _iNodesData) {
+    int shifter;
+    unsigned long long temp, data;
+    Inode* node;
+    for (int i = 0; i < 64; i++) {
+        node = &inodes[i];
+        shifter = 0;
+        temp = 0;
+        data = 0;
 
+        temp = node->id;
+        data += (temp << shifter);  // bit 0 to 16 is the blockName
+
+        shifter += 16;
+        temp = node->blockID;
+        data += (temp << shifter);  // bit 16 to 31 is the blockID
+
+        shifter += 16;
+        temp = node->reservedBits;
+        data += (temp << shifter);  // bit 32 to 47 is the reservedBits
+
+        shifter += 16;
+        temp = node->fileSize;
+        data += (temp << shifter);  // bit 48 to 64 is the fileSize
+
+        _iNodesData[i] = data;
+    }
 }
-void Inode::iNodeDeserializer(unsigned long data,unsigned short &id, unsigned short &blockID,unsigned short &cursorPos,unsigned short &fileSize){
-    unsigned long temp;
+void FileSystem::iNodesSetter(unsigned long long* _iNodesData) {
+    unsigned long long temp, data;
+    Inode* node;
 
-    temp=data;//48 to 64
-    temp=temp<<0;
-    temp=temp>>0;
-    temp=temp>>48;
-    fileSize=temp;
+    for (int i = 0; i < 64; i++) {
+        data = _iNodesData[i];
+        node = &inodes[i];
 
-    temp=data;//32 to 48
-    temp=temp<<16;
-    temp=temp>>16;
-    temp=temp>>32;
-    cursorPos=temp;
+        temp = data;  // 48 to 64
+        temp = temp << 0;
+        temp = temp >> 0;
+        temp = temp >> 48;
+        node->fileSize = temp;
 
-    temp=data;//16 to 32
-    temp=temp<<32;
-    temp=temp>>32;
-    temp=temp>>16;
-    blockID=temp;
-    
-    temp=data;//0 to 16
-    temp=temp<<48;
-    temp=temp>>48;
-    temp=temp>>0;
-    id=temp;    
+        temp = data;  // 32 to 48
+        temp = temp << 16;
+        temp = temp >> 16;
+        temp = temp >> 32;
+        node->reservedBits = temp;
+
+        temp = data;  // 16 to 32
+        temp = temp << 32;
+        temp = temp >> 32;
+        temp = temp >> 16;
+        node->blockID = temp;
+
+        temp = data;  // 0 to 16
+        temp = temp << 48;
+        temp = temp >> 48;
+        temp = temp >> 0;
+        node->id = temp;
+    }
+}
+void FileSystem::releaseInode(Inode* _deleteINode) {
+    _deleteINode->blockID = 0;
+    _deleteINode->reservedBits = 0;
+    _deleteINode->fileSize = 0;
+    _deleteINode->id = 0;
+    inodeCounter--;
+}
+void FileSystem::releaseBlock(int _blockNum) {
+    freeBlockBitmap[_blockNum] = 1;
 }

@@ -5,6 +5,8 @@
         "frame_pool.C": "cpp",
         "mem_pool.C": "cpp",
         "simple_disk.C": "cpp",
-        "file.C": "cpp"
+        "file.C": "cpp",
+        "console.C": "cpp",
+        "utils.C": "cpp"
     }
 }
