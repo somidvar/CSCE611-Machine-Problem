@@ -50,11 +50,6 @@ class Inode {
     /* You will need additional information in the inode, such as allocation
        information. */
 
-    FileSystem *fs;  // It may be handy to have a pointer to the File system.
-                     // For example when you need a new block or when you want
-                     // to load or save the inode list. (Depends on your
-                     // implementation.)
-
     /* You may need a few additional functions to help read and store the
        inodes from and to disk. */
 };
@@ -82,7 +77,6 @@ class FileSystem {
     /* Just as an example, you can store MAX_INODES in a single INODES block */
 
     Inode *inodes;                                       // the inode list
-                                                         /* The inode list */
     void iNodesGetter(unsigned long long *_iNodesData);  // converting iNodes to a unsigned long long* which is 8*64 Byte
     void iNodesSetter(unsigned long long *_iNodesData);  // converting a 8*64 Byte value into iNodes
     unsigned short inodeCounter;                         // number of free iNodes
@@ -94,15 +88,13 @@ class FileSystem {
        If you reserve one block to store the "free list", you can handle a file system up to
        256kB. (Large enough as a proof of concept.) */
 
-    // short GetFreeInode();
-    // int GetFreeBlock();
     /* It may be helpful to two functions to hand out free inodes in the inode list and free
        blocks. These functions also come useful to class Inode and File. */
 
-    int getFreeBlock();
-    Inode *getFreeInode();
-    void releaseInode(Inode *deleteINode);
-    void releaseBlock(int _blockNum);
+    int getFreeBlock();                     // getting a free block on the disk to sit the file data into it
+    Inode *getFreeInode();                  // getting a free Inode to store the metadata of a file
+    void releaseInode(Inode *deleteINode);  // releasing the inode
+    void releaseBlock(int _blockNum);       // releasing the file data block
 
    public:
     FileSystem();
@@ -131,6 +123,6 @@ class FileSystem {
     bool DeleteFile(int _file_id);
     /* Delete file with given id in the file system; free any disk block occupied by the file. */
 
-    SimpleDisk* diskgetter();
+    SimpleDisk *diskgetter();//returning the disk which the filesystem is defined on
 };
 #endif

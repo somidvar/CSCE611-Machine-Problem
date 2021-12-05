@@ -5,7 +5,7 @@
      Modified    : 2021/11/18
 
      Description : Simple File class with sequential read/write operations.
- 
+
 */
 
 #ifndef _FILE_H_
@@ -24,14 +24,14 @@
 #include "file_system.H"
 
 /*--------------------------------------------------------------------------*/
-/* FORWARDS */ 
+/* FORWARDS */
 /*--------------------------------------------------------------------------*/
 
 class Inode;
 class FileSystem;
 
 /*--------------------------------------------------------------------------*/
-/* DATA STRUCTURES */ 
+/* DATA STRUCTURES */
 /*--------------------------------------------------------------------------*/
 
 /* -- (none) -- */
@@ -40,57 +40,54 @@ class FileSystem;
 /* class  F i l e   */
 /*--------------------------------------------------------------------------*/
 
-class File  {
-    
-private:
+class File {
+   private:
     /* -- your file data structures here ... */
-    
-    /* You will need a reference to the inode, maybe even a reference to the 
-       file system. 
-       You may also want a current position, which indicates which position in 
+
+    /* You will need a reference to the inode, maybe even a reference to the
+       file system.
+       You may also want a current position, which indicates which position in
        the file you will read or write next. */
-   
-   unsigned short cursorPos;
-   FileSystem* currentFileSystem;
-   SimpleDisk* currentDisk;
-   Inode * fileINode;
-   unsigned short fileSize;
-    
+
+    unsigned short cursorPos;       // the cursor position in the file which is used for RW and EOF
+    FileSystem* currentFileSystem;  // the file system where the file is defined on
+    SimpleDisk* currentDisk;        // the disk which stored the file
+    Inode* fileINode;               // the inode of the file
+    unsigned short fileSize;        // file size in Byte. The is the actual file size not necessarily the block
+    int FileSizeGetter();           // getting the size of the file in character
+
     unsigned char block_cache[SimpleDisk::BLOCK_SIZE];
     /* It will be helpful to have a cached copy of the block that you are reading
        from and writing to. In the base submission, files have only one block, which
        you can cache here. You read the data from disk to cache whenever you open the
-       file, and you write the data to disk whenever you close the file. 
+       file, and you write the data to disk whenever you close the file.
     */
-   
 
-public:
-
-    File(FileSystem * _fs, int _id); 
-    /* Constructor for the file handle. Set the ’curren position’ to be at the 
+   public:
+    File(FileSystem* _fs, int _id);
+    /* Constructor for the file handle. Set the ’curren position’ to be at the
        beginning of the file. */
 
     ~File();
     /* Closes the file. Deletes any data structures associated with the file handle. */
-  
-    int Read(unsigned int _n, char * _buf);
+
+    int Read(unsigned int _n, char* _buf);
     /* Read _n characters from the file starting at the current position and
-       copy them in _buf.  Return the number of characters read. 
+       copy them in _buf.  Return the number of characters read.
        Do not read beyond the end of the file. */
-    
-    int Write(unsigned int _n, const char * _buf);
+
+    int Write(unsigned int _n, const char* _buf);
     /* Write _n characters to the file starting at the current position. If the write
-       extends over the end of the file, extend the length of the file until all data is 
+       extends over the end of the file, extend the length of the file until all data is
        written or until the maximum file size is reached. Do not write beyond the maximum
-       length of the file.  
+       length of the file.
        Return the number of characters written. */
-    
+
     void Reset();
     /* Set the ’current position’ to the beginning of the file. */
-    
+
     bool EoF();
     /* Is the current position for the file at the end of the file? */
-
 };
 
 #endif

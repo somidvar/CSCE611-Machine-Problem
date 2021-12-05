@@ -46,7 +46,6 @@ FileSystem::~FileSystem() {
     Console::puts("unmounting file system\n");
     Save();
     /* Make sure that the inode list and the free list are saved. */
-    assert(false);
 }
 
 /*--------------------------------------------------------------------------*/
@@ -113,6 +112,11 @@ bool FileSystem::CreateFile(int _file_id) {
     newNode->reservedBits = 0;
     newNode->blockID = newDataBlock;
     newNode->fileSize = 1;
+
+    unsigned char *temp=new unsigned char[SimpleDisk::BLOCK_SIZE];
+    temp[0]=5;//EOF character
+    disk->write(newDataBlock,temp);//cleaning the file and setting its EOF
+
     return true;
 
     /* Here you check if the file exists already. If so, throw an error.
@@ -151,7 +155,7 @@ Inode* FileSystem::getFreeInode() {
     Inode* node;
     for (int i = 0; i < 64; i++) {
         node = &inodes[i];
-        if (node->id == 0) {
+        if (node->blockID == 0) {
             inodeCounter++;
             return node;
         }
