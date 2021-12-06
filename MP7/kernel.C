@@ -106,8 +106,8 @@ void exercise_file_system(FileSystem * _file_system) {
     
     /* -- Create two files -- */
     
-    assert(_file_system->CreateFile(1));
-    assert(_file_system->CreateFile(2));
+    assert(_file_system->CreateFile(1,1024));
+    assert(_file_system->CreateFile(2,2048));
     
     /* -- "Open" the two files -- */
     
@@ -246,6 +246,14 @@ int main() {
        implementation for the free block list. */
     
     assert(FILE_SYSTEM->Mount(SYSTEM_DISK)); // 'connect' disk to file system.
+
+
+
+    //Sorush TEST
+    FILE_SYSTEM->tester();
+    SOME OF the filesystem class pass all of the test. you should test create, delete, getBlock, getInode, releaseBlock, releaseInode,Lookup,fileLastInode
+    assert(false);
+
 
     for(int j = 0;; j++) {
         exercise_file_system(FILE_SYSTEM);

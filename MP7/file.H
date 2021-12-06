@@ -49,12 +49,13 @@ class File {
        You may also want a current position, which indicates which position in
        the file you will read or write next. */
 
-    unsigned short cursorPos;       // the cursor position in the file which is used for RW and EOF
+    unsigned cursorPos;             // the cursor position in the file which is used for RW and EOF
     FileSystem* currentFileSystem;  // the file system where the file is defined on
     SimpleDisk* currentDisk;        // the disk which stored the file
     Inode* fileINode;               // the inode of the file
     unsigned short fileSize;        // file size in Byte. The is the actual file size not necessarily the block
     int FileSizeGetter();           // getting the size of the file in character
+    int currentFileID;              // file name
 
     unsigned char block_cache[SimpleDisk::BLOCK_SIZE];
     /* It will be helpful to have a cached copy of the block that you are reading

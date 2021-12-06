@@ -28,8 +28,10 @@
 
 File::File(FileSystem *_fs, int _id) {
     Console::puts("Opening file.\n");
+
     currentFileSystem = _fs;
-    fileINode = currentFileSystem->LookupFile(_id);
+    currentFileID = _id;
+    fileINode = currentFileSystem->LookupFile(currentFileID);  // getting the inode of the first part of the file
     if (fileINode == NULL) {
         Console::puts("The file should have been created but it cannot be found\n");
         assert(false);
@@ -52,51 +54,52 @@ File::~File() {
 
 int File::Read(unsigned int _n, char *_buf) {
     Console::puts("reading from file\n");
-    for (int i = 0; i < _n; i++)
-        _buf[i] = NULL;
 
-    unsigned short readChar = 0;
-    char *fileContent = new char[SimpleDisk::BLOCK_SIZE];
-    currentDisk->read(fileINode->blockID, (unsigned char *)fileContent);  // ILLEGAL TYPE-CAST
-
-    Console::putch(fileContent[0]);
-    Console::putch(fileContent[1]);
-    Console::putch(fileContent[2]);
-    Console::putch(fileContent[3]);
-    for (int i = 0; i < _n; i++) {
-        if (i + cursorPos > SimpleDisk::BLOCK_SIZE - 1) {  // the last char is reserved for EOF
-            Console::puts("MAYDAY at File Read, requested more char than the file length");
-            return readChar;
-        }
-        _buf[i] = fileContent[i + cursorPos];
-        readChar++;
+    if (_n + cursorPos > 64 * 1024) {
+        Console::puts("MAYDAY at File Read. Out of range\n");
+        assert(false);
     }
-    cursorPos += readChar;
+    int numBlockToBeRead, charInBlockToBeRead;
+    int readChar = 0;
+    char *blockContent = new char[SimpleDisk::BLOCK_SIZE];
+    for (int i = 0; i < _n; i++)
+        _buf[i] = NULL;  // cleaning the buffer
+
+    int firstBlockToBeRead, lastBlockToBeRead;
+    firstBlockToBeRead = cursorPos / SimpleDisk::BLOCK_SIZE;
+    lastBlockToBeRead = (_n + cursorPos) / SimpleDisk::BLOCK_SIZE;
+    numBlockToBeRead = lastBlockToBeRead - firstBlockToBeRead + 1;
+
+    for (int j = 0; j < numBlockToBeRead; j++) {
+        if (_n + cursorPos > SimpleDisk::BLOCK_SIZE)
+            charInBlockToBeRead = SimpleDisk::BLOCK_SIZE - cursorPos;
+        else
+            charInBlockToBeRead = _n;
+        currentDisk->read(fileINode->blockID, (unsigned char *)blockContent);  // ILLEGAL TYPE-CAST
+
+        for (int i = 0; i < charInBlockToBeRead; i++) {
+            _buf[readChar] = blockContent[i + cursorPos];
+            readChar++;
+        }
+        cursorPos += charInBlockToBeRead;
+        if (cursorPos == SimpleDisk::BLOCK_SIZE) {                             // moving to the next block
+            fileINode = currentFileSystem->inodesInode(fileINode->nextINode);  // moving the fileINode to the next part of the file
+            cursorPos = 0;
+            _n -= charInBlockToBeRead;
+        }
+    }
     return readChar;
 }
 
 int File::Write(unsigned int _n, const char *_buf) {
     Console::puts("writing to file\n");
-    char *fileContent = new char[SimpleDisk::BLOCK_SIZE];
 
+    char *fileContent = new char[SimpleDisk::BLOCK_SIZE];
     for (int i = 0; i < cursorPos; i++) {
         fileContent[i] = block_cache[i];  // reading the content of the file prior to the cursor pointer
-        Console::puts("CH1\n");
     }
 
     unsigned short writeChar = 0;
-    Console::puts("CH2\n");
-    Console::putch(_buf[0]);
-    Console::putch(_buf[1]);
-    Console::putch(_buf[2]);
-    Console::putch(_buf[3]);
-    Console::puts("CH3\n");
-    Console::puti(fileSize);
-    Console::puts("\n");
-    Console::puti(_n);
-    Console::puts("\n");
-    Console::puti(cursorPos);
-    Console::puts("CH4\n");
     for (int i = 0; i < _n; i++) {
         if (i + cursorPos > SimpleDisk::BLOCK_SIZE - 1) {  // the last char is reserved for EOF
             Console::puts("MAYDAY at File Write, requested more char than the file length");
@@ -115,11 +118,14 @@ int File::Write(unsigned int _n, const char *_buf) {
 
 void File::Reset() {
     Console::puts("resetting file\n");
+
+    fileINode = currentFileSystem->LookupFile(currentFileID);
     cursorPos = 0;
 }
 
 bool File::EoF() {
     Console::puts("checking for EoF\n");
+    
     if (cursorPos == FileSizeGetter())
         return true;
     return false;
@@ -133,5 +139,5 @@ int File::FileSizeGetter() {
             return i;
         }
     }
-    return 0;
+    return SimpleDisk::BLOCK_SIZE;//the file is full and it is in the middle of the chain (there are more file parts after this block)
 }

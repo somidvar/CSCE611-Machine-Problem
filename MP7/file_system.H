@@ -42,13 +42,18 @@ class Inode {
                               // to the Inode.
 
    private:
-    unsigned short id;            // File "name"
-    unsigned short blockID;       // the block where the data sits
-    unsigned short reservedBits;  // position of the cursor when writting or reading
-    unsigned short fileSize;      // file size in blocks
+    unsigned short id;           // File "name"
+    unsigned short blockID;      // the block where the data sits
+    unsigned short nextINode;    // position of the cursor when writting or reading
+    unsigned short fileSize;     // file size in blocks
+    unsigned short iNodeNumber;  // the index of the inode in inodes array
 
     /* You will need additional information in the inode, such as allocation
        information. */
+   public:
+    static const unsigned int MAX_INODE = 2 * 1024 * 1024 / SimpleDisk::BLOCK_SIZE;
+    static const unsigned int INODE_PER_BLOCK = SimpleDisk::BLOCK_SIZE / 8;
+    static const unsigned int INODE_BLOCK_NUMBER = MAX_INODE / INODE_PER_BLOCK;
 
     /* You may need a few additional functions to help read and store the
        inodes from and to disk. */
@@ -91,10 +96,12 @@ class FileSystem {
     /* It may be helpful to two functions to hand out free inodes in the inode list and free
        blocks. These functions also come useful to class Inode and File. */
 
-    int getFreeBlock();                     // getting a free block on the disk to sit the file data into it
-    Inode *getFreeInode();                  // getting a free Inode to store the metadata of a file
-    void releaseInode(Inode *deleteINode);  // releasing the inode
-    void releaseBlock(int _blockNum);       // releasing the file data block
+    int getFreeBlock();                                                        // getting a free block on the disk to sit the file data into it
+    Inode *getFreeInode();                                                     // getting a free Inode to store the metadata of a file
+    void releaseInode(Inode *deleteINode);                                     // releasing the inode
+    void releaseBlock(int _blockNum);                                          // releasing the file data block
+    static int bitmapGetter(unsigned char *_char, int _blockNum);              // returning the _blockNum status in _char
+    static void bitmapSetter(unsigned char *_char, int _blockNum, int _free);  // setting the _blockNum status in _char and reading it ino the _free
 
    public:
     FileSystem();
@@ -112,17 +119,20 @@ class FileSystem {
     static bool Format(SimpleDisk *_disk, unsigned int _size);
     /* Wipes any file system from the disk and installs an empty file system of given size. */
 
-    Inode *LookupFile(int _file_id);
+    Inode *LookupFile(int _file_id);  // return the inode for the first part of the file
     /* Find file with given id in file system. If found, return its inode.
          Otherwise, return null. */
 
-    bool CreateFile(int _file_id);
+    bool CreateFile(int _file_id, int _fileSize);  // modified to account for the size which should be in bytes
     /* Create file with given id in the file system. If file exists already,
        abort and return false. Otherwise, return true. */
 
     bool DeleteFile(int _file_id);
     /* Delete file with given id in the file system; free any disk block occupied by the file. */
 
-    SimpleDisk *diskgetter();//returning the disk which the filesystem is defined on
+    SimpleDisk *diskgetter();              // returning the disk which the filesystem is defined on
+    Inode *FileLastINode(int _file_id);    // finding the last part of the file and returning its inode
+    Inode *inodesInode(int _inodesIndex);  // returning the inodes[_inodesIndex]
+    void tester();
 };
 #endif
