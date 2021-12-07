@@ -92,34 +92,19 @@ bool FileSystem::Save() {
 }
 
 void FileSystem::tester() {
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    /*
     Mount(disk);
-    int myBlockNum=62;
+    int myBlockNum = 10;
     inodes[myBlockNum].id = 10;
     inodes[myBlockNum].blockID = 20;
     inodes[myBlockNum].nextINode = 30;
     inodes[myBlockNum].fileSize = 40;
 
     Save();
-    Format(disk,1024);
+    Format(disk, 1024);
     Mount(disk);
-    inodes[myBlockNum].fileSize = 40;
+    inodes[myBlockNum].nextINode = 50;
+    inodes[myBlockNum].fileSize = 60;
     Save();
     Mount(disk);
     unsigned char* hooshang = new unsigned char[1024];
@@ -148,7 +133,7 @@ void FileSystem::tester() {
     inodes[myBlockNum].blockID = 21;
     inodes[myBlockNum].nextINode = 31;
     inodes[myBlockNum].fileSize = 41;
-    
+
     Mount(disk);
     Console::puts("---------------------------------\n");
     int mamad;
@@ -156,9 +141,12 @@ void FileSystem::tester() {
     Console::putui(mamad);
     mamad = inodes[myBlockNum].blockID;
     Console::putui(mamad);
+    mamad = inodes[myBlockNum].nextINode;
+    Console::putui(mamad);
     mamad = inodes[myBlockNum].fileSize;
     Console::putui(mamad);
     assert(false);
+    */
 }
 
 bool FileSystem::Format(SimpleDisk* _disk, unsigned int _size) {
@@ -183,37 +171,15 @@ bool FileSystem::Format(SimpleDisk* _disk, unsigned int _size) {
     return true;
 }
 
-Inode* FileSystem::LookupFile(int _file_id) {
-    Console::puts("looking up file with id = ");
-    Console::puti(_file_id);
-    Console::puts("\n");
-
-    Inode* node = FileLastINode(_file_id);
-    if (node == NULL)  // file does not exist
-        return NULL;
-    Inode* parent;
-    bool parentFound = true;
-    while (parentFound) {
-        parentFound = false;
-        for (int i = 0; i < Inode::MAX_INODE; i++) {
-            parent = &inodes[i];
-            if (parent->id == _file_id && parent->nextINode == node->iNodeNumber) {
-                node = parent;
-                parentFound = true;
-                break;
-            }
-        }
-    }
-    return node;  // this is the first part of the file
-}
-
 bool FileSystem::CreateFile(int _file_id, int _fileSize) {
     Console::puts("creating file with id:");
     Console::puti(_file_id);
     Console::puts("\n");
 
-    if (LookupFile(_file_id) != NULL)
+    if (LookupFile(_file_id) != NULL) {
+        Console::puts("The file has been created before\n");
         return false;
+    }
 
     if (_fileSize > 1024 * 64) {
         Console::puts("MAYDAY at CreateFile. The file is bigger than 64 KB\n");
@@ -221,7 +187,6 @@ bool FileSystem::CreateFile(int _file_id, int _fileSize) {
     }
 
     unsigned char* temp = new unsigned char[SimpleDisk::BLOCK_SIZE];
-    temp[0] = 5;  // EOF character
     Inode *next, *node;
     int newDataBlock, fileBlockNum;
     node = getFreeInode();
@@ -231,20 +196,75 @@ bool FileSystem::CreateFile(int _file_id, int _fileSize) {
         fileBlockNum = _fileSize / SimpleDisk::BLOCK_SIZE + 1;
     for (int i = 0; i < fileBlockNum; i++) {
         newDataBlock = getFreeBlock();
+        node->id = _file_id;
+        node->blockID = newDataBlock;
+        node->fileSize = 0;
         if (i < fileBlockNum - 1) {  // the last node does not get a next inode
             next = getFreeInode();
             node->nextINode = next->iNodeNumber;
         } else
             node->nextINode = 0;
-
-        node->id = _file_id;
-        node->blockID = newDataBlock;
-        node->fileSize = fileBlockNum;
-        disk->write(newDataBlock, temp);  // cleaning the file and setting its EOF
+        disk->write(newDataBlock, temp);  // cleaning the file
         node = next;
     }
+    // Console::puts("------------------\n");
+    // Inode* mamad = LookupFile(_file_id);
+    // while (mamad->blockID != 0) {
+    //     Console::putui(mamad->id);
+    //     Console::putui(mamad->blockID);
+    //     Console::putui(mamad->nextINode);
+    //     Console::putui(mamad->iNodeNumber);
+    //     if (mamad->nextINode != 0)
+    //         mamad = &inodes[mamad->nextINode];
+    //     else
+    //         break;
+    //     Console::puts("******************\n");
+    // }
+    // Console::puts("===================\n");
+
+
     delete[] temp;
     return true;
+}
+Inode* FileSystem::LookupFile(int _file_id) {
+    Console::puts("looking up file with id = ");
+    Console::puti(_file_id);
+    Console::puts("\n");
+
+    Inode* node;
+    node = FileLastINode(_file_id);
+    if (node == NULL)  // file does not exist
+        return NULL;
+    while (iNodeParentFinder(node) != NULL) {
+        node = iNodeParentFinder(node);
+    }
+    return node;  // this is the first part of the file
+}
+Inode* FileSystem::iNodeParentFinder(Inode* _inode) {
+    Console::puts("iNodeParentFinder\n");
+
+    Inode* currentNode = _inode;
+    Inode* candid;
+    for (int i = 0; i < Inode::MAX_INODE; i++) {
+        candid = &inodes[i];
+
+        if (candid->id == currentNode->id &&
+            candid->nextINode == currentNode->iNodeNumber &&
+            candid->nextINode != 0) {
+            return candid;
+        }
+    }
+    return NULL;
+}
+Inode* FileSystem::FileLastINode(int _file_id) {
+    Inode* node;
+    for (int i = 0; i < Inode::MAX_INODE; i++) {
+        node = &inodes[i];
+        if (node->id == _file_id && node->nextINode == 0 && node->blockID != 0) {
+            return node;
+        }
+    }
+    return NULL;
 }
 
 bool FileSystem::DeleteFile(int _file_id) {
@@ -254,26 +274,19 @@ bool FileSystem::DeleteFile(int _file_id) {
 
     if (LookupFile(_file_id) == NULL)  // the file does not exist
         return false;
-    Inode* deleteNode = FileLastINode(_file_id);
-    while (deleteNode != NULL) {
-        releaseBlock(deleteNode->blockID);
-        releaseInode(deleteNode);
-        deleteNode = FileLastINode(_file_id);
+    Inode* deleteNode;
+    for (int i = 0; i < Inode::MAX_INODE; i++) {
+        deleteNode = &inodes[i];
+        if (deleteNode->id == _file_id && deleteNode->blockID != 0) {
+            releaseBlock(deleteNode->blockID);
+            releaseInode(deleteNode);
+        }
     }
     return true;
 
     /* First, check if the file exists. If not, throw an error.
        Then free all blocks that belong to the file and delete/invalidate
        (depending on your implementation of the inode list) the inode. */
-}
-Inode* FileSystem::FileLastINode(int _file_id) {
-    Inode* node;
-    for (int i = 0; i < Inode::MAX_INODE; i++) {
-        node = &inodes[i];
-        if (node->id == _file_id && node->nextINode == 0)
-            return node;
-    }
-    return NULL;
 }
 
 int FileSystem::getFreeBlock() {

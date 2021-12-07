@@ -31,15 +31,17 @@ File::File(FileSystem *_fs, int _id) {
 
     currentFileSystem = _fs;
     currentFileID = _id;
+    
     fileINode = currentFileSystem->LookupFile(currentFileID);  // getting the inode of the first part of the file
     if (fileINode == NULL) {
         Console::puts("The file should have been created but it cannot be found\n");
         assert(false);
     }
+    
     currentDisk = currentFileSystem->diskgetter();
     cursorPos = 0;
+    
     currentDisk->read(fileINode->blockID, block_cache);
-    fileSize = FileSizeGetter();
 }
 
 File::~File() {
@@ -126,18 +128,7 @@ void File::Reset() {
 bool File::EoF() {
     Console::puts("checking for EoF\n");
     
-    if (cursorPos == FileSizeGetter())
+    if (cursorPos == fileINode->fileSize)
         return true;
     return false;
-}
-int File::FileSizeGetter() {
-    int size = 0;
-    unsigned char *fileContent = new unsigned char[SimpleDisk::BLOCK_SIZE];
-    currentDisk->read(fileINode->blockID, fileContent);
-    for (int i = 0; i < SimpleDisk::BLOCK_SIZE; i++) {
-        if (fileContent[i] == 5) {  // character that I chose for the end of file
-            return i;
-        }
-    }
-    return SimpleDisk::BLOCK_SIZE;//the file is full and it is in the middle of the chain (there are more file parts after this block)
 }
