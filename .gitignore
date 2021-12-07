@@ -1,2 +1,5 @@
 *.o
 *.O
+*.bin
+*.img
+*bochsout.txt'

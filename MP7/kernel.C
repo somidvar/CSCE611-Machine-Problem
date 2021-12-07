@@ -248,7 +248,7 @@ int main() {
     FILE_SYSTEM->CreateFile(0, 1024*5);
     File Jafar(FILE_SYSTEM, 1);
 
-    FileSystem is checked and fixed! Please check File!
+    // FileSystem is checked and fixed! Please check File!
 
     assert(false);
 
