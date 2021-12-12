@@ -44,32 +44,32 @@
 /*--------------------------------------------------------------------------*/
 
 /* -- A POOL OF FRAMES FOR THE SYSTEM TO USE */
-FramePool* SYSTEM_FRAME_POOL;
+FramePool *SYSTEM_FRAME_POOL;
 
 /* -- A POOL OF CONTIGUOUS MEMORY FOR THE SYSTEM TO USE */
-MemPool* MEMORY_POOL;
+MemPool *MEMORY_POOL;
 
 typedef long unsigned int size_t;
 
 // replace the operator "new"
-void* operator new(size_t size) {
+void *operator new(size_t size) {
     unsigned long a = MEMORY_POOL->allocate((unsigned long)size);
-    return (void*)a;
+    return (void *)a;
 }
 
 // replace the operator "new[]"
-void* operator new[](size_t size) {
+void *operator new[](size_t size) {
     unsigned long a = MEMORY_POOL->allocate((unsigned long)size);
-    return (void*)a;
+    return (void *)a;
 }
 
 // replace the operator "delete"
-void operator delete(void* p, size_t s) {
+void operator delete(void *p, size_t s) {
     MEMORY_POOL->release((unsigned long)p);
 }
 
 // replace the operator "delete[]"
-void operator delete[](void* p) {
+void operator delete[](void *p) {
     MEMORY_POOL->release((unsigned long)p);
 }
 
@@ -78,7 +78,7 @@ void operator delete[](void* p) {
 /*--------------------------------------------------------------------------*/
 
 /* -- A POINTER TO THE SYSTEM DISK */
-SimpleDisk* SYSTEM_DISK;
+SimpleDisk *SYSTEM_DISK;
 
 #define SYSTEM_DISK_SIZE (10 MB)
 
@@ -87,59 +87,27 @@ SimpleDisk* SYSTEM_DISK;
 /*--------------------------------------------------------------------------*/
 
 /* -- A POINTER TO THE SYSTEM FILE SYSTEM */
-FileSystem* FILE_SYSTEM;
+FileSystem *FILE_SYSTEM;
 
 /*--------------------------------------------------------------------------*/
 /* CODE TO EXERCISE THE FILE SYSTEM */
 /*--------------------------------------------------------------------------*/
 
-void exercise_file_system(FileSystem* _file_system) {
-    const char* STRING1 = "01234567890123456789";
-    const char* STRING2 = "abcdefghijabcdefghij";
+void exercise_file_system(FileSystem *_file_system) {
+    char *STRING1 = new char[512];
+    char *STRING2 = new char[512];
 
-    char* tempStr = new char[1024];
-    for (int i = 0; i < 1024; i++) {
-        tempStr[i] = i % 128;
-    }
-    char* tempStr2 = new char[512];
+    char *combined1 = new char[1024];
+    char *combined2 = new char[1024];
     for (int i = 0; i < 512; i++) {
-        tempStr2[i] = 3;
+        STRING1[i] = i % 128;
+        STRING1[i] = 3;
     }
-
-    _file_system->CreateFile(11, 2000);
-
-    File tempFile(_file_system, 11);
-    Inode* tempInode;
-    Console::puts("-----------------------------\n");
-    Console::puts("\n       ");
-    Console::putui(tempFile.EoF());
-    tempFile.Write(400, tempStr);
-    tempFile.Write(300, tempStr2);
-    Console::puts("\n       ");
-    Console::putui(tempFile.EoF());
-    tempFile.Reset();
-    Console::puts("\n       ");
-    Console::putui(tempFile.EoF());
-
-    // tempFile.Write(600, tempStr);
-    // tempFile.Write(300, tempStr2);
-    // tempFile.Reset();
-
-    Console::puts("***********************************\n");
-
-    // char* makabiz = new char[2048];
-    // for (int i = 0; i < 1500; i++)
-    //     makabiz[i] = i % 128;
-    // tempFile.Read(1600, makabiz);
-    // for (int i = 0; i < 1600; i++)
-    //     Console::putui(makabiz[i]);
-
-    assert(false);
 
     /* -- Create two files -- */
 
-    assert(_file_system->CreateFile(1, 600));
-    assert(_file_system->CreateFile(2, 1200));
+    assert(_file_system->CreateFile(1));
+    assert(_file_system->CreateFile(2));
 
     /* -- "Open" the two files -- */
 
@@ -149,11 +117,40 @@ void exercise_file_system(FileSystem* _file_system) {
         File file2(_file_system, 2);
 
         /* -- Write into File 1 -- */
-        file1.Write(20, STRING1);
+        file1.Write(14, STRING1);
+        file1.Write(200, STRING1);
+        file1.Write(400, STRING1);
+        file1.Write(10, STRING2);
+        file1.Write(400, STRING1);
 
+        for (int i = 0; i < 14; i++)
+            combined1[i] = STRING1[i];
+        for (int i = 0; i < 200; i++)
+            combined1[i + 14] = STRING1[i];
+        for (int i = 0; i < 400; i++)
+            combined1[i + 200 + 14] = STRING1[i];
+        for (int i = 0; i < 10; i++)
+            combined1[i + 400 + 200 + 14] = STRING2[i];
+        for (int i = 0; i < 400; i++)
+            combined1[i + 10 + 400 + 200 + 14] = STRING1[i];
         /* -- Write into File 2 -- */
 
-        file2.Write(20, STRING2);
+        file2.Write(100, STRING1);
+        file2.Write(200, STRING2);
+        file2.Write(300, STRING2);
+        file2.Write(400, STRING1);
+        file2.Write(24, STRING1);
+
+        for (int i = 0; i < 100; i++)
+            combined2[i] = STRING1[i];
+        for (int i = 0; i < 200; i++)
+            combined2[i + 100] = STRING2[i];
+        for (int i = 0; i < 300; i++)
+            combined2[i + 200 + 100] = STRING2[i];
+        for (int i = 0; i < 400; i++)
+            combined2[i + 300 + 200 + 100] = STRING1[i];
+        for (int i = 0; i < 24; i++)
+            combined2[i + 400 + 300 + 200 + 100] = STRING1[i];
 
         /* -- Files will get automatically closed when we leave scope  -- */
     }
@@ -165,26 +162,36 @@ void exercise_file_system(FileSystem* _file_system) {
 
         /* -- Read from File 1 and check result -- */
         file1.Reset();
-        char result1[30];
-        assert(file1.Read(20, result1) == 20);
-        for (int i = 0; i < 20; i++) {
-            assert(result1[i] == STRING1[i]);
+        assert(file1.EoF()==false);
+        char *result1 = new char[1024];
+        assert(file1.Read(1024, result1) == 1024);
+        for (int i = 0; i < 1024; i++) {
+            // Console::putui(result1[i]);
+            // Console::putui(combined1[i]);
+            // Console::puts("\n");
+            assert(result1[i] == combined1[i]);
         }
+        assert(file1.EoF()==true);
+        
 
         /* -- Read from File 2 and check result -- */
         file2.Reset();
-        char result2[30];
-        assert(file2.Read(20, result2) == 20);
-        for (int i = 0; i < 20; i++) {
-            assert(result2[i] == STRING2[i]);
+        assert(file2.EoF()==false);
+        char *result2 = new char[1024];
+        assert(file2.Read(1024, result2) == 1024);
+        for (int i = 0; i < 1024; i++) {
+            assert(result2[i] == combined2[i]);
         }
+        assert(file2.EoF()==true);
 
         /* -- "Close" files again -- */
     }
 
     /* -- Delete both files -- */
     assert(_file_system->DeleteFile(1));
+    assert(_file_system->LookupFile(1)==NULL);
     assert(_file_system->DeleteFile(2));
+    assert(_file_system->LookupFile(2)==NULL);
 }
 
 /*--------------------------------------------------------------------------*/
@@ -205,7 +212,7 @@ int main() {
 
     class DBZ_Handler : public ExceptionHandler {
        public:
-        virtual void handle_exception(REGS* _regs) {
+        virtual void handle_exception(REGS *_regs) {
             Console::puts("DIVISION BY ZERO!\n");
             for (;;)
                 ;
@@ -245,7 +252,7 @@ int main() {
 
     class Disk_Silencer : public InterruptHandler {
        public:
-        virtual void handle_interrupt(REGS* _regs) {
+        virtual void handle_interrupt(REGS *_regs) {
             // we do nothing here. Just consume the interrupt
         }
     } disk_silencer;

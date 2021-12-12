@@ -54,13 +54,7 @@ class File {
     SimpleDisk* currentDisk;        // the disk which stored the file
     Inode* fileINode;               // the inode of the file
     int currentFileID;              // file name
-
-    unsigned char block_cache[SimpleDisk::BLOCK_SIZE];
-    /* It will be helpful to have a cached copy of the block that you are reading
-       from and writing to. In the base submission, files have only one block, which
-       you can cache here. You read the data from disk to cache whenever you open the
-       file, and you write the data to disk whenever you close the file.
-    */
+    int TotalFileSizeCalc();        // finding the total file size of a the file
 
    public:
     File(FileSystem* _fs, int _id);

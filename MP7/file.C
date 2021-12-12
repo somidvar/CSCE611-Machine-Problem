@@ -40,8 +40,6 @@ File::File(FileSystem *_fs, int _id) {
 
     currentDisk = currentFileSystem->diskgetter();
     cursorPos = 0;
-
-    currentDisk->read(fileINode->blockID, block_cache);
 }
 
 File::~File() {
@@ -57,7 +55,7 @@ File::~File() {
 int File::Read(unsigned int _n, char *_buf) {
     Console::puts("reading from file\n");
 
-    if (_n + cursorPos > 64 * 1024) {
+    if (_n + cursorPos > 64 * 1024 || _n + cursorPos > TotalFileSizeCalc()) {
         Console::puts("MAYDAY at File Read. Out of range\n");
         assert(false);
     }
@@ -67,10 +65,6 @@ int File::Read(unsigned int _n, char *_buf) {
     char *blockContent = new char[SimpleDisk::BLOCK_SIZE];
     currentDisk->read(fileINode->blockID, (unsigned char *)blockContent);  // ILLELGAL TYPE-CAST
     for (counter = 0; counter < _n; counter++) {
-        // if (blockChar > fileINode->fileSizeChar) {
-        //     Console::puts("MAYDAY at Read File. Requested char number is bigger than the file size\n");
-        //     assert(false);
-        // }
         _buf[counter] = blockContent[blockChar];
         blockChar++;
         cursorPos++;
@@ -93,7 +87,7 @@ int File::Write(unsigned int _n, const char *_buf) {
     Console::puts("writing to file\n");
 
     if (_n + cursorPos > 64 * 1024) {
-        Console::puts("MAYDAY at File Read. Out of range\n");
+        Console::puts("MAYDAY at File Write. Out of range\n");
         assert(false);
     }
 
@@ -105,26 +99,24 @@ int File::Write(unsigned int _n, const char *_buf) {
     }
     int counter;
     int blockChar = cursorPos % SimpleDisk::BLOCK_SIZE;
-    Console::puts("\n CH1-");
-    Console::putui(fileINode->fileSizeChar);
+
     for (counter = 0; counter < _n; counter++) {
         blockContent[blockChar] = _buf[counter];
         blockChar++;
         cursorPos++;
-        fileINode->fileSizeChar = fileINode->fileSizeChar + 1;
-
+        fileINode->fileSizeChar = blockChar;
         if (blockChar == SimpleDisk::BLOCK_SIZE) {  // going to the next block
-            Console::puts("Going to the next INode\n");
-            if (fileINode->nextINode == 0) {
-                Console::puts("MAYDAY at Read File. There is no next INode\n");
-                assert(false);
-            }
             if (!currentFileSystem->Save()) {
                 Console::puts("MAYDAY at write file. Not able to save the INode data\n");
                 assert(false);
             }
             currentDisk->write(fileINode->blockID, (unsigned char *)blockContent);  // ILLELGAL TYPE-CAST
-            fileINode = currentFileSystem->inodesInode(fileINode->nextINode);       // moving the fileINode to the next part of the file
+            if (cursorPos == SimpleDisk::BLOCK_SIZE * currentFileSystem->FileBlockCounter(currentFileID)) {
+                if (!currentFileSystem->FileExtender(currentFileID)) {//can we extend the file?
+                    assert(false);
+                }
+            }
+            fileINode = currentFileSystem->inodesInode(fileINode->nextINode);  // moving the fileINode to the next part of the file
             blockChar = 0;
         }
     }
@@ -145,17 +137,22 @@ void File::Reset() {
 
 bool File::EoF() {
     Console::puts("checking for EoF\n");
-    
+
+    int totalFileSize = TotalFileSizeCalc();
+    if (cursorPos == totalFileSize)
+        return true;
+    return false;
+}
+int File::TotalFileSizeCalc() {
+    Console::puts("TotalFileSizeCalc\n");
+
     int totalFileSize = 0;
     Inode *tempInode = currentFileSystem->LookupFile(currentFileID);
     while (true) {
         totalFileSize += tempInode->fileSizeChar;
-        if (tempInode->nextINode == 0)//end of the chain
+        if (tempInode->nextINode == 0)  // end of the chain
             break;
         tempInode = currentFileSystem->inodesInode(tempInode->nextINode);
     }
-
-    if (cursorPos == totalFileSize)
-        return true;
-    return false;
+    return totalFileSize;
 }

@@ -91,64 +91,6 @@ bool FileSystem::Save() {
     return true;
 }
 
-void FileSystem::tester() {
-    /*
-    Mount(disk);
-    int myBlockNum = 10;
-    inodes[myBlockNum].id = 10;
-    inodes[myBlockNum].blockID = 20;
-    inodes[myBlockNum].nextINode = 30;
-    inodes[myBlockNum].fileSize = 40;
-
-    Save();
-    Format(disk, 1024);
-    Mount(disk);
-    inodes[myBlockNum].nextINode = 50;
-    inodes[myBlockNum].fileSize = 60;
-    Save();
-    Mount(disk);
-    unsigned char* hooshang = new unsigned char[1024];
-    disk->read(1, hooshang);
-    int solat;
-    solat = hooshang[myBlockNum * 8 + 0];
-    Console::putui(solat);
-    solat = hooshang[myBlockNum * 8 + 1];
-    Console::putui(solat);
-    solat = hooshang[myBlockNum * 8 + 2];
-    Console::putui(solat);
-    solat = hooshang[myBlockNum * 8 + 3];
-    Console::putui(solat);
-    solat = hooshang[myBlockNum * 8 + 4];
-    Console::putui(solat);
-    solat = hooshang[myBlockNum * 8 + 5];
-    Console::putui(solat);
-    solat = hooshang[myBlockNum * 8 + 6];
-    Console::putui(solat);
-    solat = hooshang[myBlockNum * 8 + 7];
-    Console::putui(solat);
-    solat = hooshang[myBlockNum * 8 + 8];
-    Console::putui(solat);
-
-    inodes[myBlockNum].id = 11;
-    inodes[myBlockNum].blockID = 21;
-    inodes[myBlockNum].nextINode = 31;
-    inodes[myBlockNum].fileSize = 41;
-
-    Mount(disk);
-    Console::puts("---------------------------------\n");
-    int mamad;
-    mamad = inodes[myBlockNum].id;
-    Console::putui(mamad);
-    mamad = inodes[myBlockNum].blockID;
-    Console::putui(mamad);
-    mamad = inodes[myBlockNum].nextINode;
-    Console::putui(mamad);
-    mamad = inodes[myBlockNum].fileSize;
-    Console::putui(mamad);
-    assert(false);
-    */
-}
-
 bool FileSystem::Format(SimpleDisk* _disk, unsigned int _size) {
     Console::puts("formatting disk\n");
 
@@ -171,7 +113,7 @@ bool FileSystem::Format(SimpleDisk* _disk, unsigned int _size) {
     return true;
 }
 
-bool FileSystem::CreateFile(int _file_id, int _fileSize) {
+bool FileSystem::CreateFile(int _file_id) {
     Console::puts("creating file with id:");
     Console::puti(_file_id);
     Console::puts("\n");
@@ -180,50 +122,18 @@ bool FileSystem::CreateFile(int _file_id, int _fileSize) {
         Console::puts("The file has been created before\n");
         return false;
     }
+    Inode* node = getFreeInode();
+    int newDataBlock = getFreeBlock();
 
-    if (_fileSize > 1024 * 64) {
-        Console::puts("MAYDAY at CreateFile. The file is bigger than 64 KB\n");
-        assert(false);
-    }
+    node->id = _file_id;
+    node->blockID = newDataBlock;
+    node->fileSizeChar = 0;
+    node->nextINode = 0;
 
     unsigned char* temp = new unsigned char[SimpleDisk::BLOCK_SIZE];
-    Inode *next, *node;
-    int newDataBlock, fileBlockNum;
-    node = getFreeInode();
-    if (_fileSize % SimpleDisk::BLOCK_SIZE == 0)  // rounding the fileSize to blockSize
-        fileBlockNum = _fileSize / SimpleDisk::BLOCK_SIZE;
-    else
-        fileBlockNum = _fileSize / SimpleDisk::BLOCK_SIZE + 1;
-    for (int i = 0; i < fileBlockNum; i++) {
-        newDataBlock = getFreeBlock();
-        node->id = _file_id;
-        node->blockID = newDataBlock;
-        node->fileSizeChar = 0;
-        if (i < fileBlockNum - 1) {  // the last node does not get a next inode
-            next = getFreeInode();
-            node->nextINode = next->iNodeNumber;
-        } else
-            node->nextINode = 0;
-        disk->write(newDataBlock, temp);  // cleaning the file
-        node = next;
-    }
-    // Console::puts("------------------\n");
-    // Inode* mamad = LookupFile(_file_id);
-    // while (mamad->blockID != 0) {
-    //     Console::putui(mamad->id);
-    //     Console::putui(mamad->blockID);
-    //     Console::putui(mamad->nextINode);
-    //     Console::putui(mamad->iNodeNumber);
-    //     if (mamad->nextINode != 0)
-    //         mamad = &inodes[mamad->nextINode];
-    //     else
-    //         break;
-    //     Console::puts("******************\n");
-    // }
-    // Console::puts("===================\n");
-
-
+    disk->write(newDataBlock, temp);  // cleaning the disk previous data
     delete[] temp;
+
     return true;
 }
 Inode* FileSystem::LookupFile(int _file_id) {
@@ -283,10 +193,6 @@ bool FileSystem::DeleteFile(int _file_id) {
         }
     }
     return true;
-
-    /* First, check if the file exists. If not, throw an error.
-       Then free all blocks that belong to the file and delete/invalidate
-       (depending on your implementation of the inode list) the inode. */
 }
 
 int FileSystem::getFreeBlock() {
@@ -424,6 +330,46 @@ void FileSystem::bitmapSetter(unsigned char* _char, int _blockNum, int _free) {
 Inode* FileSystem::inodesInode(int _inodesIndex) {
     return &inodes[_inodesIndex];
 }
-bool FileSystem::FileExtender(int _file_id){
+bool FileSystem::FileExtender(int _file_id) {
+    Console::puts("FileExtener\n");
 
+    if (FileBlockCounter(_file_id) * SimpleDisk::BLOCK_SIZE > 1024 * 64) {
+        Console::puts("File cannot be extended. The file is bigger than 64 KB\n");
+        return false;
+    }
+
+    Inode *next, *node;
+    node = FileLastINode(_file_id);
+    next = getFreeInode();
+    if (node == NULL || next == NULL) {
+        Console::puts("MAYDAY at FileExtender. There is no file or no new INode\n");
+        assert(false);
+    }
+
+    int newDataBlock = getFreeBlock();
+    next->id = _file_id;
+    next->blockID = newDataBlock;
+    next->fileSizeChar = 0;
+    next->nextINode = 0;
+    node->nextINode = next->iNodeNumber;
+
+    unsigned char* temp = new unsigned char[SimpleDisk::BLOCK_SIZE];
+    disk->write(newDataBlock, temp);  // cleaning the disk previous data
+    delete[] temp;
+
+    Save();  // saving the inode data
+    return true;
+}
+int FileSystem::FileBlockCounter(int _file_id) {
+    Console::puts("FileBlockCounter\n");
+
+    int totalFileBlock = 0;
+    Inode* tempInode = LookupFile(_file_id);
+    while (true) {
+        totalFileBlock += 1;
+        if (tempInode->nextINode == 0)  // end of the chain
+            break;
+        tempInode = &inodes[tempInode->nextINode];
+    }
+    return totalFileBlock;
 }

@@ -102,7 +102,7 @@ class FileSystem {
     void releaseBlock(int _blockNum);                                          // releasing the file data block
     static int bitmapGetter(unsigned char *_char, int _blockNum);              // returning the _blockNum status in _char
     static void bitmapSetter(unsigned char *_char, int _blockNum, int _free);  // setting the _blockNum status in _char and reading it ino the _free
-    Inode *iNodeParentFinder(Inode *_inode);
+    Inode *iNodeParentFinder(Inode *_inode);                                   // returning the parent of an INode
 
    public:
     FileSystem();
@@ -124,7 +124,7 @@ class FileSystem {
     /* Find file with given id in file system. If found, return its inode.
          Otherwise, return null. */
 
-    bool CreateFile(int _file_id, int _fileSize);  // modified to account for the size which should be in bytes
+    bool CreateFile(int _file_id);
     /* Create file with given id in the file system. If file exists already,
        abort and return false. Otherwise, return true. */
 
@@ -134,7 +134,7 @@ class FileSystem {
     SimpleDisk *diskgetter();              // returning the disk which the filesystem is defined on
     Inode *FileLastINode(int _file_id);    // finding the last part of the file and returning its inode
     Inode *inodesInode(int _inodesIndex);  // returning the inodes[_inodesIndex]
-    bool FileExtender(int _file_id);     // extending the file
-    void tester();
+    bool FileExtender(int _file_id);       // extending the file
+    int FileBlockCounter(int _file_id);    // returning how many block is used by a file
 };
 #endif
