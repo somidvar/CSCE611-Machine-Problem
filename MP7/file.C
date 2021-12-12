@@ -31,16 +31,16 @@ File::File(FileSystem *_fs, int _id) {
 
     currentFileSystem = _fs;
     currentFileID = _id;
-    
+
     fileINode = currentFileSystem->LookupFile(currentFileID);  // getting the inode of the first part of the file
     if (fileINode == NULL) {
         Console::puts("The file should have been created but it cannot be found\n");
         assert(false);
     }
-    
+
     currentDisk = currentFileSystem->diskgetter();
     cursorPos = 0;
-    
+
     currentDisk->read(fileINode->blockID, block_cache);
 }
 
@@ -61,61 +61,79 @@ int File::Read(unsigned int _n, char *_buf) {
         Console::puts("MAYDAY at File Read. Out of range\n");
         assert(false);
     }
-    int numBlockToBeRead, charInBlockToBeRead;
-    int readChar = 0;
+
+    int counter;
+    int blockChar = cursorPos % SimpleDisk::BLOCK_SIZE;
     char *blockContent = new char[SimpleDisk::BLOCK_SIZE];
-    for (int i = 0; i < _n; i++)
-        _buf[i] = NULL;  // cleaning the buffer
+    currentDisk->read(fileINode->blockID, (unsigned char *)blockContent);  // ILLELGAL TYPE-CAST
+    for (counter = 0; counter < _n; counter++) {
+        // if (blockChar > fileINode->fileSizeChar) {
+        //     Console::puts("MAYDAY at Read File. Requested char number is bigger than the file size\n");
+        //     assert(false);
+        // }
+        _buf[counter] = blockContent[blockChar];
+        blockChar++;
+        cursorPos++;
 
-    int firstBlockToBeRead, lastBlockToBeRead;
-    firstBlockToBeRead = cursorPos / SimpleDisk::BLOCK_SIZE;
-    lastBlockToBeRead = (_n + cursorPos) / SimpleDisk::BLOCK_SIZE;
-    numBlockToBeRead = lastBlockToBeRead - firstBlockToBeRead + 1;
-
-    for (int j = 0; j < numBlockToBeRead; j++) {
-        if (_n + cursorPos > SimpleDisk::BLOCK_SIZE)
-            charInBlockToBeRead = SimpleDisk::BLOCK_SIZE - cursorPos;
-        else
-            charInBlockToBeRead = _n;
-        currentDisk->read(fileINode->blockID, (unsigned char *)blockContent);  // ILLEGAL TYPE-CAST
-
-        for (int i = 0; i < charInBlockToBeRead; i++) {
-            _buf[readChar] = blockContent[i + cursorPos];
-            readChar++;
-        }
-        cursorPos += charInBlockToBeRead;
-        if (cursorPos == SimpleDisk::BLOCK_SIZE) {                             // moving to the next block
-            fileINode = currentFileSystem->inodesInode(fileINode->nextINode);  // moving the fileINode to the next part of the file
-            cursorPos = 0;
-            _n -= charInBlockToBeRead;
+        if (blockChar == SimpleDisk::BLOCK_SIZE) {  // going to the next block
+            Console::puts("Going to the next INode\n");
+            if (fileINode->nextINode == 0) {
+                Console::puts("MAYDAY at Read File. There is no next INode\n");
+                assert(false);
+            }
+            fileINode = currentFileSystem->inodesInode(fileINode->nextINode);      // moving the fileINode to the next part of the file
+            currentDisk->read(fileINode->blockID, (unsigned char *)blockContent);  // ILLELGAL TYPE-CAST
+            blockChar = 0;
         }
     }
-    return readChar;
+    return counter;
 }
 
 int File::Write(unsigned int _n, const char *_buf) {
     Console::puts("writing to file\n");
 
-    char *fileContent = new char[SimpleDisk::BLOCK_SIZE];
-    for (int i = 0; i < cursorPos; i++) {
-        fileContent[i] = block_cache[i];  // reading the content of the file prior to the cursor pointer
+    if (_n + cursorPos > 64 * 1024) {
+        Console::puts("MAYDAY at File Read. Out of range\n");
+        assert(false);
     }
 
-    unsigned short writeChar = 0;
-    for (int i = 0; i < _n; i++) {
-        if (i + cursorPos > SimpleDisk::BLOCK_SIZE - 1) {  // the last char is reserved for EOF
-            Console::puts("MAYDAY at File Write, requested more char than the file length");
-            break;
-        }
-        fileContent[i + cursorPos] = _buf[i];
-        writeChar++;
+    char *blockContent = new char[SimpleDisk::BLOCK_SIZE];
+    if (cursorPos > 0)
+        currentDisk->read(fileINode->blockID, (unsigned char *)blockContent);  // ILLELGAL TYPE-CAST
+    for (int i = cursorPos; i < SimpleDisk::BLOCK_SIZE; i++) {                 // reading the content prior to the cursor
+        blockContent[i] = NULL;
     }
-    cursorPos += writeChar;
-    fileContent[cursorPos] = 5;                                            // setting the EOF character
-    currentDisk->write(fileINode->blockID, (unsigned char *)fileContent);  // ILLEGAL TYPE-CAST
-    for (int i = 0; i < SimpleDisk::BLOCK_SIZE; i++)
-        block_cache[i] = fileContent[i];  // updating the cache of the file;
-    return writeChar;
+    int counter;
+    int blockChar = cursorPos % SimpleDisk::BLOCK_SIZE;
+    Console::puts("\n CH1-");
+    Console::putui(fileINode->fileSizeChar);
+    for (counter = 0; counter < _n; counter++) {
+        blockContent[blockChar] = _buf[counter];
+        blockChar++;
+        cursorPos++;
+        fileINode->fileSizeChar = fileINode->fileSizeChar + 1;
+
+        if (blockChar == SimpleDisk::BLOCK_SIZE) {  // going to the next block
+            Console::puts("Going to the next INode\n");
+            if (fileINode->nextINode == 0) {
+                Console::puts("MAYDAY at Read File. There is no next INode\n");
+                assert(false);
+            }
+            if (!currentFileSystem->Save()) {
+                Console::puts("MAYDAY at write file. Not able to save the INode data\n");
+                assert(false);
+            }
+            currentDisk->write(fileINode->blockID, (unsigned char *)blockContent);  // ILLELGAL TYPE-CAST
+            fileINode = currentFileSystem->inodesInode(fileINode->nextINode);       // moving the fileINode to the next part of the file
+            blockChar = 0;
+        }
+    }
+    if (!currentFileSystem->Save()) {
+        Console::puts("MAYDAY at write file. Not able to save the INode data\n");
+        assert(false);
+    }
+    currentDisk->write(fileINode->blockID, (unsigned char *)blockContent);  // ILLELGAL TYPE-CAST
+    return counter;
 }
 
 void File::Reset() {
@@ -128,7 +146,16 @@ void File::Reset() {
 bool File::EoF() {
     Console::puts("checking for EoF\n");
     
-    if (cursorPos == fileINode->fileSize)
+    int totalFileSize = 0;
+    Inode *tempInode = currentFileSystem->LookupFile(currentFileID);
+    while (true) {
+        totalFileSize += tempInode->fileSizeChar;
+        if (tempInode->nextINode == 0)//end of the chain
+            break;
+        tempInode = currentFileSystem->inodesInode(tempInode->nextINode);
+    }
+
+    if (cursorPos == totalFileSize)
         return true;
     return false;
 }

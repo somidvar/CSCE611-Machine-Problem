@@ -42,11 +42,11 @@ class Inode {
                               // to the Inode.
 
    private:
-    unsigned short id;           // File "name"
-    unsigned short blockID;      // the block where the data sits
-    unsigned short nextINode;    // position of the cursor when writting or reading
-    unsigned short fileSize;     // file size in char
-    unsigned short iNodeNumber;  // the index of the inode in inodes array
+    unsigned short id;            // File "name"
+    unsigned short blockID;       // the block where the data sits
+    unsigned short nextINode;     // position of the cursor when writting or reading
+    unsigned short fileSizeChar;  // file size in char
+    unsigned short iNodeNumber;   // the index of the inode in inodes array
 
     /* You will need additional information in the inode, such as allocation
        information. */
@@ -102,7 +102,7 @@ class FileSystem {
     void releaseBlock(int _blockNum);                                          // releasing the file data block
     static int bitmapGetter(unsigned char *_char, int _blockNum);              // returning the _blockNum status in _char
     static void bitmapSetter(unsigned char *_char, int _blockNum, int _free);  // setting the _blockNum status in _char and reading it ino the _free
-    Inode* iNodeParentFinder(Inode* _inode);
+    Inode *iNodeParentFinder(Inode *_inode);
 
    public:
     FileSystem();
@@ -134,6 +134,7 @@ class FileSystem {
     SimpleDisk *diskgetter();              // returning the disk which the filesystem is defined on
     Inode *FileLastINode(int _file_id);    // finding the last part of the file and returning its inode
     Inode *inodesInode(int _inodesIndex);  // returning the inodes[_inodesIndex]
+    bool FileExtender(int _file_id);     // extending the file
     void tester();
 };
 #endif

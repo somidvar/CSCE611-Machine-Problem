@@ -198,7 +198,7 @@ bool FileSystem::CreateFile(int _file_id, int _fileSize) {
         newDataBlock = getFreeBlock();
         node->id = _file_id;
         node->blockID = newDataBlock;
-        node->fileSize = 0;
+        node->fileSizeChar = 0;
         if (i < fileBlockNum - 1) {  // the last node does not get a next inode
             next = getFreeInode();
             node->nextINode = next->iNodeNumber;
@@ -336,8 +336,8 @@ void FileSystem::iNodesGetter(unsigned long long* _iNodesData) {
         data += (temp << shifter);  // bit 32 to 47 is the reservedBits
 
         shifter += 16;
-        temp = node->fileSize;
-        data += (temp << shifter);  // bit 48 to 64 is the fileSize
+        temp = node->fileSizeChar;
+        data += (temp << shifter);  // bit 48 to 64 is the fileSizeChar
 
         _iNodesData[i] = data;
     }
@@ -354,7 +354,7 @@ void FileSystem::iNodesSetter(unsigned long long* _iNodesData) {
         temp = temp << 0;
         temp = temp >> 0;
         temp = temp >> 48;
-        node->fileSize = temp;
+        node->fileSizeChar = temp;
 
         temp = data;  // 32 to 48
         temp = temp << 16;
@@ -380,7 +380,7 @@ void FileSystem::iNodesSetter(unsigned long long* _iNodesData) {
 void FileSystem::releaseInode(Inode* _deleteINode) {
     _deleteINode->blockID = 0;
     _deleteINode->nextINode = 0;
-    _deleteINode->fileSize = 0;
+    _deleteINode->fileSizeChar = 0;
     _deleteINode->id = 0;
     inodeCounter--;
 }
@@ -423,4 +423,7 @@ void FileSystem::bitmapSetter(unsigned char* _char, int _blockNum, int _free) {
 }
 Inode* FileSystem::inodesInode(int _inodesIndex) {
     return &inodes[_inodesIndex];
+}
+bool FileSystem::FileExtender(int _file_id){
+
 }

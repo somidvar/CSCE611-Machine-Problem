@@ -44,32 +44,32 @@
 /*--------------------------------------------------------------------------*/
 
 /* -- A POOL OF FRAMES FOR THE SYSTEM TO USE */
-FramePool *SYSTEM_FRAME_POOL;
+FramePool* SYSTEM_FRAME_POOL;
 
 /* -- A POOL OF CONTIGUOUS MEMORY FOR THE SYSTEM TO USE */
-MemPool *MEMORY_POOL;
+MemPool* MEMORY_POOL;
 
 typedef long unsigned int size_t;
 
 // replace the operator "new"
-void *operator new(size_t size) {
+void* operator new(size_t size) {
     unsigned long a = MEMORY_POOL->allocate((unsigned long)size);
-    return (void *)a;
+    return (void*)a;
 }
 
 // replace the operator "new[]"
-void *operator new[](size_t size) {
+void* operator new[](size_t size) {
     unsigned long a = MEMORY_POOL->allocate((unsigned long)size);
-    return (void *)a;
+    return (void*)a;
 }
 
 // replace the operator "delete"
-void operator delete(void *p, size_t s) {
+void operator delete(void* p, size_t s) {
     MEMORY_POOL->release((unsigned long)p);
 }
 
 // replace the operator "delete[]"
-void operator delete[](void *p) {
+void operator delete[](void* p) {
     MEMORY_POOL->release((unsigned long)p);
 }
 
@@ -78,7 +78,7 @@ void operator delete[](void *p) {
 /*--------------------------------------------------------------------------*/
 
 /* -- A POINTER TO THE SYSTEM DISK */
-SimpleDisk *SYSTEM_DISK;
+SimpleDisk* SYSTEM_DISK;
 
 #define SYSTEM_DISK_SIZE (10 MB)
 
@@ -87,20 +87,59 @@ SimpleDisk *SYSTEM_DISK;
 /*--------------------------------------------------------------------------*/
 
 /* -- A POINTER TO THE SYSTEM FILE SYSTEM */
-FileSystem *FILE_SYSTEM;
+FileSystem* FILE_SYSTEM;
 
 /*--------------------------------------------------------------------------*/
 /* CODE TO EXERCISE THE FILE SYSTEM */
 /*--------------------------------------------------------------------------*/
 
-void exercise_file_system(FileSystem *_file_system) {
-    const char *STRING1 = "01234567890123456789";
-    const char *STRING2 = "abcdefghijabcdefghij";
+void exercise_file_system(FileSystem* _file_system) {
+    const char* STRING1 = "01234567890123456789";
+    const char* STRING2 = "abcdefghijabcdefghij";
+
+    char* tempStr = new char[1024];
+    for (int i = 0; i < 1024; i++) {
+        tempStr[i] = i % 128;
+    }
+    char* tempStr2 = new char[512];
+    for (int i = 0; i < 512; i++) {
+        tempStr2[i] = 3;
+    }
+
+    _file_system->CreateFile(11, 2000);
+
+    File tempFile(_file_system, 11);
+    Inode* tempInode;
+    Console::puts("-----------------------------\n");
+    Console::puts("\n       ");
+    Console::putui(tempFile.EoF());
+    tempFile.Write(400, tempStr);
+    tempFile.Write(300, tempStr2);
+    Console::puts("\n       ");
+    Console::putui(tempFile.EoF());
+    tempFile.Reset();
+    Console::puts("\n       ");
+    Console::putui(tempFile.EoF());
+
+    // tempFile.Write(600, tempStr);
+    // tempFile.Write(300, tempStr2);
+    // tempFile.Reset();
+
+    Console::puts("***********************************\n");
+
+    // char* makabiz = new char[2048];
+    // for (int i = 0; i < 1500; i++)
+    //     makabiz[i] = i % 128;
+    // tempFile.Read(1600, makabiz);
+    // for (int i = 0; i < 1600; i++)
+    //     Console::putui(makabiz[i]);
+
+    assert(false);
 
     /* -- Create two files -- */
 
-    assert(_file_system->CreateFile(1, 1024));
-    assert(_file_system->CreateFile(2, 2048));
+    assert(_file_system->CreateFile(1, 600));
+    assert(_file_system->CreateFile(2, 1200));
 
     /* -- "Open" the two files -- */
 
@@ -166,7 +205,7 @@ int main() {
 
     class DBZ_Handler : public ExceptionHandler {
        public:
-        virtual void handle_exception(REGS *_regs) {
+        virtual void handle_exception(REGS* _regs) {
             Console::puts("DIVISION BY ZERO!\n");
             for (;;)
                 ;
@@ -206,7 +245,7 @@ int main() {
 
     class Disk_Silencer : public InterruptHandler {
        public:
-        virtual void handle_interrupt(REGS *_regs) {
+        virtual void handle_interrupt(REGS* _regs) {
             // we do nothing here. Just consume the interrupt
         }
     } disk_silencer;
@@ -237,20 +276,6 @@ int main() {
        implementation for the free block list. */
 
     assert(FILE_SYSTEM->Mount(SYSTEM_DISK));  // 'connect' disk to file system.
-
-    // Sorush TEST
-    FILE_SYSTEM->tester();
-
-    FILE_SYSTEM->CreateFile(0, 1024*2);
-    FILE_SYSTEM->CreateFile(1, 1024*3);
-    FILE_SYSTEM->CreateFile(0, 1024*4);
-    FILE_SYSTEM->DeleteFile(0);
-    FILE_SYSTEM->CreateFile(0, 1024*5);
-    File Jafar(FILE_SYSTEM, 1);
-
-    // FileSystem is checked and fixed! Please check File!
-
-    assert(false);
 
     for (int j = 0;; j++) {
         exercise_file_system(FILE_SYSTEM);
